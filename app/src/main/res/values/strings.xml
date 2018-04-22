@@ -1,4 +1,11 @@
 <resources>
-    <string name="app_name">BeezList</string>
+    <string name="app_name">BE.TODO</string>
     <string name="action_settings">Settings</string>
+    <string-array name="calander">
+        <item>Today</item>
+        <item>Tomorrow</item>
+        <item>This Week</item>
+        <item>Sometime</item>
+
+    </string-array>
 </resources>

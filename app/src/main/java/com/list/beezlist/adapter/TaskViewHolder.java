@@ -1,41 +1,67 @@
 package com.list.beezlist.adapter;
 
+import android.content.DialogInterface;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
 import com.list.beezlist.R;
-import com.list.beezlist.Task;
 
 
-public class TaskViewHolder extends RecyclerView.ViewHolder {
+public class TaskViewHolder extends RecyclerView.ViewHolder{
 
-    AlertDialog alertDialog;
     View view;
+    public RelativeLayout view_background;
+    public LinearLayout view_foreground;
     public DatabaseReference databaseReference;
+    public RelativeLayout viewBackground, viewForeground;
 
     public TaskViewHolder(View itemView) {
         super(itemView);
 
-        databaseReference = FirebaseDatabase.getInstance().getReference("Tasks");
+    view_background = (RelativeLayout)itemView.findViewById(R.id.view_background);
+    view_foreground = (LinearLayout)itemView.findViewById(R.id.view_foreground);
 
         itemView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
+            public boolean onLongClick(final View view) {
+                // -- Start of Dialog --
+                AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+                builder.setMessage("Do you want to delete this item?").setCancelable(false)
+                        .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                            // This work once the User click positive
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                databaseReference.child("title").removeValue();
+                                databaseReference.child("description").removeValue();
+                                databaseReference.child("time").removeValue();
+                            }
+                        })
+                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                            // This work once the User click negative
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
 
-            public boolean onLongClick(View delete) {
-
-                databaseReference.child("title").removeValue();
-                databaseReference.child("description").removeValue();
-                databaseReference.child("time").removeValue();
-
+                            }
+                        });
+                AlertDialog dialog = builder.create();
+                dialog.setTitle("Delete Your Task?");
+                dialog.show();
+                // -- End of Dialog --
 
                 return false;
+
             }
+
         });
+
+
     }
 
     public void setTitle(String title) {

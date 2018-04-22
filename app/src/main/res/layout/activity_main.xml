@@ -1,41 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:design="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:orientation="vertical"
-
     android:layout_height="match_parent"
     tools:context="com.list.beezlist.MainActivity">
 
+    <android.support.design.widget.BottomNavigationView
+        android:id="@+id/navigation"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
 
+        android:layout_gravity="bottom"
+        design:menu="@menu/navigation">
+
+    </android.support.design.widget.BottomNavigationView>
 
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="235dp">
-    <android.support.design.widget.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="230dp"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:layout_height="260dp">
 
-        <include layout="@layout/activity_add_task" />
-    </android.support.design.widget.AppBarLayout>
+        <android.support.design.widget.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="260dp"
+            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+                android:orientation="vertical"
+                android:layout_height="270dp"
+                android:paddingTop="16dp"
+                android:paddingRight="16dp"
+                android:paddingLeft="16dp"
+                android:paddingBottom="16dp"
+                android:layout_marginTop="15dp"
+                tools:context="com.list.beezlist.MainActivity">
 
+                <TextView
+                    android:textSize="25sp"
+                    android:textStyle="bold"
+                    android:textAlignment="center"
+                    android:id="@+id/timeHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="35dp"
+                    android:textColor="#FFFFFF"
+                    />
+                <View android:layout_width="fill_parent"
+                    android:layout_marginTop="5dp"
+                    android:layout_height="2dp"
+                    android:layout_marginBottom="10dp"
+                    android:background="#FFFFFF" />
 
+                <EditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/editTitle"
+                    android:hint="Enter Title"/>
+
+                <EditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/editDesc"
+                    android:hint="Enter Description"/>
+
+                <Spinner
+                    android:layout_marginTop="5dp"
+                    android:textColor="#000000"
+                    android:id="@+id/spinner"
+                    android:layout_width="150dp"
+                    android:layout_height="25dp">
+
+                </Spinner>
+                <Button
+                    android:id="@+id/btnClick"
+                    android:onClick="addButtonClicked"
+                    android:text="ADD"
+                    android:layout_marginTop="9dp"
+                    android:layout_marginHorizontal="85dp"
+                    android:textColor="#313131"
+                    android:textSize="15sp"
+                    android:layout_width="150sp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/buttonshape"/>
+
+            </LinearLayout>
+        </android.support.design.widget.AppBarLayout>
 
 
     </LinearLayout>
 
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/task_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-<android.support.v7.widget.RecyclerView
-    android:id="@+id/task_list"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
 
-
-</android.support.v7.widget.RecyclerView>
+        </android.support.v7.widget.RecyclerView>
 
 
 </LinearLayout>

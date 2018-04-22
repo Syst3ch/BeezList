@@ -1,4 +1,4 @@
-package com.list.beezlist;
+package com.list.beezlist.adapter;
 
 import android.widget.Button;
 

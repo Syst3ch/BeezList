@@ -3,4 +3,5 @@
     <color name="colorPrimaryDark">#ffb41d</color>
     <color name="colorAccent">#2e2e2e</color>
     <color name="white">#ffffff</color>
+    <color name="bg_row_background">#ffb41d</color>
 </resources>
