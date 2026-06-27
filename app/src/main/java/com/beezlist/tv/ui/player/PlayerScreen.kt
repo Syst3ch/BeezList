@@ -1,6 +1,6 @@
 package com.beezlist.tv.ui.player
 
-import android.view.ViewGroup
+import android.view.LayoutInflater
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -52,12 +52,7 @@ fun PlayerScreen(streamUrl: String) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = {
-                PlayerView(context).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    )
-                    useController = true
+                (LayoutInflater.from(context).inflate(R.layout.player_view, null) as PlayerView).apply {
                     player = exoPlayer
                 }
             },
