@@ -1,7 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">@android:color/holo_orange_light</color>
-    <color name="colorPrimaryDark">#ffb41d</color>
-    <color name="colorAccent">#2e2e2e</color>
-    <color name="white">#ffffff</color>
-    <color name="bg_row_background">#ffb41d</color>
+    <color name="ic_launcher_background">#101830</color>
+    <color name="beez_navy">#101830</color>
+    <color name="beez_navy_dark">#0A0F20</color>
+    <color name="beez_yellow">#FFC400</color>
+    <color name="beez_black">#18140A</color>
+    <color name="beez_signal">#00E0C4</color>
 </resources>
