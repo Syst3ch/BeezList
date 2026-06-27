@@ -40,16 +40,20 @@ import com.beezlist.tv.data.Channel
 @Composable
 fun ChannelListScreen(
     channels: List<Channel>,
+    favorites: Set<String>,
     onChannelClick: (Channel) -> Unit,
+    onToggleFavorite: (Channel) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     val allChannelsLabel = stringResource(R.string.all_channels)
+    val favoritesLabel = stringResource(R.string.favorites_group)
     val filteredChannels = if (query.isBlank()) {
         channels
     } else {
         channels.filter { it.name.contains(query, ignoreCase = true) }
     }
+    val favoriteChannels = filteredChannels.filter { it.streamUrl in favorites }
     val groups = filteredChannels
         .groupBy { it.groupTitle.ifBlank { allChannelsLabel } }
         .toSortedMap()
@@ -84,6 +88,32 @@ fun ChannelListScreen(
             contentPadding = PaddingValues(vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
+            if (favoriteChannels.isNotEmpty()) {
+                item {
+                    Text(
+                        text = favoritesLabel,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
+                    )
+                }
+                item {
+                    TvLazyRow(
+                        contentPadding = PaddingValues(horizontal = 32.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(favoriteChannels) { channel ->
+                            ChannelTile(
+                                channel = channel,
+                                isFavorite = true,
+                                onClick = { onChannelClick(channel) },
+                                onToggleFavorite = { onToggleFavorite(channel) },
+                            )
+                        }
+                    }
+                }
+            }
+
             groups.forEach { (groupTitle, groupChannels) ->
                 item {
                     Text(
@@ -99,7 +129,12 @@ fun ChannelListScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         items(groupChannels) { channel ->
-                            ChannelTile(channel = channel, onClick = { onChannelClick(channel) })
+                            ChannelTile(
+                                channel = channel,
+                                isFavorite = channel.streamUrl in favorites,
+                                onClick = { onChannelClick(channel) },
+                                onToggleFavorite = { onToggleFavorite(channel) },
+                            )
                         }
                     }
                 }
@@ -109,12 +144,17 @@ fun ChannelListScreen(
 }
 
 @Composable
-private fun ChannelTile(channel: Channel, onClick: () -> Unit) {
+private fun ChannelTile(
+    channel: Channel,
+    isFavorite: Boolean,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit,
+) {
     Card(
         onClick = onClick,
         modifier = Modifier
             .width(200.dp)
-            .height(140.dp),
+            .height(160.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -141,13 +181,21 @@ private fun ChannelTile(channel: Channel, onClick: () -> Unit) {
                     )
                 }
             }
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp),
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 8.dp).weight(1f, fill = false),
+                )
+                Button(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
+                    Text(if (isFavorite) "★" else "☆")
+                }
+            }
         }
     }
 }

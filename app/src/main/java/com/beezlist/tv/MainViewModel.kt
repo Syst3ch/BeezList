@@ -27,10 +27,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastUrl = MutableStateFlow<String?>(null)
     val lastUrl: StateFlow<String?> = _lastUrl
 
+    private val _favorites = MutableStateFlow<Set<String>>(emptySet())
+    val favorites: StateFlow<Set<String>> = _favorites
+
     init {
         viewModelScope.launch {
             repository.lastPlaylistUrl.collect { url ->
                 _lastUrl.update { url }
+            }
+        }
+        viewModelScope.launch {
+            repository.favoriteChannelUrls.collect { urls ->
+                _favorites.update { urls }
             }
         }
     }
@@ -53,5 +61,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun reset() {
         _playlistState.update { PlaylistState.Idle }
+    }
+
+    fun toggleFavorite(streamUrl: String) {
+        viewModelScope.launch {
+            repository.toggleFavorite(streamUrl)
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.beezlist.tv.data
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit
 
 private val Context.playlistDataStore by preferencesDataStore(name = "beezlist_playlist")
 private val LAST_PLAYLIST_URL = stringPreferencesKey("last_playlist_url")
+private val FAVORITE_CHANNEL_URLS = stringSetPreferencesKey("favorite_channel_urls")
 
 class PlaylistRepository(private val context: Context) {
 
@@ -28,6 +30,20 @@ class PlaylistRepository(private val context: Context) {
 
     suspend fun saveLastPlaylistUrl(url: String) {
         context.playlistDataStore.edit { it[LAST_PLAYLIST_URL] = url }
+    }
+
+    val favoriteChannelUrls: Flow<Set<String>> =
+        context.playlistDataStore.data.map { it[FAVORITE_CHANNEL_URLS].orEmpty() }
+
+    suspend fun toggleFavorite(streamUrl: String) {
+        context.playlistDataStore.edit { prefs ->
+            val current = prefs[FAVORITE_CHANNEL_URLS].orEmpty()
+            prefs[FAVORITE_CHANNEL_URLS] = if (streamUrl in current) {
+                current - streamUrl
+            } else {
+                current + streamUrl
+            }
+        }
     }
 
     suspend fun fetchFromUrl(url: String): List<Channel> = withContext(Dispatchers.IO) {

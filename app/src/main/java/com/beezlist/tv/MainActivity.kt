@@ -56,6 +56,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
     val navController = rememberNavController()
     val playlistState by viewModel.playlistState.collectAsState()
     val lastUrl by viewModel.lastUrl.collectAsState()
+    val favorites by viewModel.favorites.collectAsState()
 
     NavHost(navController = navController, startDestination = Routes.INPUT) {
         composable(Routes.INPUT) {
@@ -87,7 +88,9 @@ private fun BeezListApp(viewModel: MainViewModel) {
             val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
             ChannelListScreen(
                 channels = channels,
+                favorites = favorites,
                 onChannelClick = { channel -> navController.navigate(Routes.player(channel.streamUrl)) },
+                onToggleFavorite = { channel -> viewModel.toggleFavorite(channel.streamUrl) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
