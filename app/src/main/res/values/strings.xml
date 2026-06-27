@@ -1,11 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BE.TODO</string>
-    <string name="action_settings">Settings</string>
-    <string-array name="calander">
-        <item>Today</item>
-        <item>Tomorrow</item>
-        <item>This Week</item>
-        <item>Sometime</item>
-
-    </string-array>
+    <string name="app_name">BeezList</string>
+    <string name="playlist_input_title">BeezList IPTV</string>
+    <string name="playlist_input_subtitle">הזן כתובת פלייליסט M3U/M3U8 כדי להתחיל</string>
+    <string name="playlist_url_label">כתובת פלייליסט (M3U URL)</string>
+    <string name="load_playlist">טען פלייליסט</string>
+    <string name="loading_playlist">טוען פלייליסט…</string>
+    <string name="error_loading_playlist">שגיאה בטעינת הפלייליסט. בדוק את הכתובת ונסה שוב.</string>
+    <string name="empty_playlist">לא נמצאו ערוצים בפלייליסט הזה.</string>
+    <string name="player_error">שגיאה בהפעלת השידור. נסה ערוץ אחר.</string>
+    <string name="all_channels">כל הערוצים</string>
 </resources>

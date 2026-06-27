@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.BeezList" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:colorBackground">@color/beez_navy</item>
+        <item name="android:windowBackground">@color/beez_navy</item>
+    </style>
+</resources>
