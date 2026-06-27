@@ -17,4 +17,8 @@
     <string name="qr_pairing_waiting">מחכה להזנה מהטלפון…</string>
     <string name="qr_pairing_error_no_network">לא נמצאה רשת מקומית. בדקו את חיבור ה-Wi-Fi של הטלוויזיה.</string>
     <string name="qr_pairing_error_server">לא ניתן להפעיל שרת מקומי בטלוויזיה. נסו שוב.</string>
+    <string name="search_placeholder">חיפוש ערוץ…</string>
+    <string name="settings_button">הגדרות</string>
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_back">חזרה</string>
 </resources>

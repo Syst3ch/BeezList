@@ -22,12 +22,14 @@ import com.beezlist.tv.ui.channels.ChannelListScreen
 import com.beezlist.tv.ui.input.PlaylistInputScreen
 import com.beezlist.tv.ui.pairing.QrPairingScreen
 import com.beezlist.tv.ui.player.PlayerScreen
+import com.beezlist.tv.ui.settings.SettingsScreen
 import com.beezlist.tv.ui.theme.BeezListTheme
 
 private object Routes {
     const val INPUT = "input"
     const val QR_PAIRING = "qr_pairing"
     const val CHANNELS = "channels"
+    const val SETTINGS = "settings"
     const val PLAYER = "player/{streamUrl}"
 
     fun player(streamUrl: String) = "player/${Uri.encode(streamUrl)}"
@@ -86,7 +88,24 @@ private fun BeezListApp(viewModel: MainViewModel) {
             ChannelListScreen(
                 channels = channels,
                 onChannelClick = { channel -> navController.navigate(Routes.player(channel.streamUrl)) },
+                onOpenSettings = { navController.navigate(Routes.SETTINGS) },
             )
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                currentUrl = lastUrl,
+                playlistState = playlistState,
+                onLoadPlaylist = { url -> viewModel.loadPlaylist(url) },
+                onScanQr = { navController.navigate(Routes.QR_PAIRING) },
+                onBack = { navController.popBackStack() },
+            )
+
+            LaunchedEffect(playlistState) {
+                val state = playlistState
+                if (state is PlaylistState.Loaded && state.channels.isNotEmpty()) {
+                    navController.popBackStack(Routes.CHANNELS, inclusive = false)
+                }
+            }
         }
         composable(
             route = Routes.PLAYER,
