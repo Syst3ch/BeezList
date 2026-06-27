@@ -10,4 +10,11 @@
     <string name="empty_playlist">לא נמצאו ערוצים בפלייליסט הזה.</string>
     <string name="player_error">שגיאה בהפעלת השידור. נסה ערוץ אחר.</string>
     <string name="all_channels">כל הערוצים</string>
+    <string name="scan_qr_button">הזן כתובת מהטלפון (QR)</string>
+    <string name="qr_pairing_title">סריקה מהטלפון</string>
+    <string name="qr_pairing_subtitle">סרקו את הקוד במצלמת הטלפון, הזינו את כתובת הפלייליסט בדף שנפתח ושלחו. ודאו שהטלפון מחובר לאותה רשת Wi-Fi כמו הטלוויזיה.</string>
+    <string name="qr_pairing_cancel">ביטול</string>
+    <string name="qr_pairing_waiting">מחכה להזנה מהטלפון…</string>
+    <string name="qr_pairing_error_no_network">לא נמצאה רשת מקומית. בדקו את חיבור ה-Wi-Fi של הטלוויזיה.</string>
+    <string name="qr_pairing_error_server">לא ניתן להפעיל שרת מקומי בטלוויזיה. נסו שוב.</string>
 </resources>

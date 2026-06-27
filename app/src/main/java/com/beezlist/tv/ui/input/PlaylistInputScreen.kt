@@ -34,6 +34,7 @@ fun PlaylistInputScreen(
     lastUrl: String?,
     playlistState: PlaylistState,
     onLoadPlaylist: (String) -> Unit,
+    onScanQr: () -> Unit,
 ) {
     var url by remember(lastUrl) { mutableStateOf(lastUrl.orEmpty()) }
 
@@ -79,6 +80,10 @@ fun PlaylistInputScreen(
 
             Button(onClick = { onLoadPlaylist(url) }) {
                 Text(stringResource(R.string.load_playlist))
+            }
+
+            Button(onClick = onScanQr) {
+                Text(stringResource(R.string.scan_qr_button))
             }
 
             when (playlistState) {

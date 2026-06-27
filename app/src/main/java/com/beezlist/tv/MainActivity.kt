@@ -20,11 +20,13 @@ import androidx.tv.material3.Surface
 import com.beezlist.tv.data.Channel
 import com.beezlist.tv.ui.channels.ChannelListScreen
 import com.beezlist.tv.ui.input.PlaylistInputScreen
+import com.beezlist.tv.ui.pairing.QrPairingScreen
 import com.beezlist.tv.ui.player.PlayerScreen
 import com.beezlist.tv.ui.theme.BeezListTheme
 
 private object Routes {
     const val INPUT = "input"
+    const val QR_PAIRING = "qr_pairing"
     const val CHANNELS = "channels"
     const val PLAYER = "player/{streamUrl}"
 
@@ -59,6 +61,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
                 lastUrl = lastUrl,
                 playlistState = playlistState,
                 onLoadPlaylist = { url -> viewModel.loadPlaylist(url) },
+                onScanQr = { navController.navigate(Routes.QR_PAIRING) },
             )
 
             LaunchedEffect(playlistState) {
@@ -67,6 +70,15 @@ private fun BeezListApp(viewModel: MainViewModel) {
                     navController.navigate(Routes.CHANNELS)
                 }
             }
+        }
+        composable(Routes.QR_PAIRING) {
+            QrPairingScreen(
+                onUrlReceived = { url ->
+                    viewModel.loadPlaylist(url)
+                    navController.popBackStack()
+                },
+                onCancel = { navController.popBackStack() },
+            )
         }
         composable(Routes.CHANNELS) {
             val state = playlistState
