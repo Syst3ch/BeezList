@@ -65,6 +65,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.compose.material3:material3")
 
     // Media playback
     implementation("androidx.media3:media3-exoplayer:1.4.0")
