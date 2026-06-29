@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -24,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.beezlist.tv.PlaylistState
@@ -83,11 +83,11 @@ fun PlaylistInputScreen(
             )
 
             Button(onClick = { onLoadPlaylist(url) }) {
-                Text(stringResource(R.string.load_playlist))
+                M3Text(stringResource(R.string.load_playlist))
             }
 
             Button(onClick = onScanQr) {
-                Text(stringResource(R.string.scan_qr_button))
+                M3Text(stringResource(R.string.scan_qr_button))
             }
 
             when (playlistState) {

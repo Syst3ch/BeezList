@@ -23,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.tv.material3.Button
+import androidx.compose.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.beezlist.tv.EpgState
@@ -77,11 +77,11 @@ fun SettingsScreen(
             )
 
             Button(onClick = { onLoadPlaylist(url) }) {
-                Text(stringResource(R.string.load_playlist))
+                M3Text(stringResource(R.string.load_playlist))
             }
 
             Button(onClick = onScanQr) {
-                Text(stringResource(R.string.scan_qr_button))
+                M3Text(stringResource(R.string.scan_qr_button))
             }
 
             when (playlistState) {
@@ -114,7 +114,7 @@ fun SettingsScreen(
             )
 
             Button(onClick = { onLoadEpg(epgUrlInput) }) {
-                Text(stringResource(R.string.load_epg))
+                M3Text(stringResource(R.string.load_epg))
             }
 
             when (epgState) {
@@ -134,7 +134,7 @@ fun SettingsScreen(
             }
 
             Button(onClick = onBack) {
-                Text(stringResource(R.string.settings_back))
+                M3Text(stringResource(R.string.settings_back))
             }
         }
     }
