@@ -122,7 +122,9 @@ private fun BeezListApp(viewModel: MainViewModel) {
             arguments = listOf(navArgument("streamUrl") { type = NavType.StringType }),
         ) { backStackEntry ->
             val encodedUrl = backStackEntry.arguments?.getString("streamUrl").orEmpty()
-            PlayerScreen(streamUrl = Uri.decode(encodedUrl))
+            val state = playlistState
+            val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
+            PlayerScreen(channels = channels, initialStreamUrl = Uri.decode(encodedUrl))
         }
     }
 }
