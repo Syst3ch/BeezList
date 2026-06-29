@@ -39,6 +39,7 @@ fun PlayerScreen(
     channels: List<Channel>,
     initialStreamUrl: String,
     onWatching: (Channel) -> Unit = {},
+    onWatchTime: (Channel, Long) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
@@ -51,6 +52,16 @@ fun PlayerScreen(
 
     LaunchedEffect(streamUrl) {
         currentChannel?.let(onWatching)
+    }
+
+    DisposableEffect(streamUrl) {
+        val watchedChannel = currentChannel
+        val startTime = System.currentTimeMillis()
+        onDispose {
+            if (watchedChannel != null) {
+                onWatchTime(watchedChannel, System.currentTimeMillis() - startTime)
+            }
+        }
     }
 
     var hasError by remember(streamUrl) { mutableStateOf(false) }

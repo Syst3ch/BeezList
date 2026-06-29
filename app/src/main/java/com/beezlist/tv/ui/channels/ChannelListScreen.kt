@@ -13,9 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -31,6 +34,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
@@ -45,6 +49,9 @@ import com.beezlist.tv.data.EpgProgram
 
 private const val ALL_TAB = "__all__"
 private const val FAVORITES_TAB = "__favorites__"
+private const val POPULAR_CHANNELS_LIMIT = 10
+
+private data class PendingUnlock(val groupTitle: String, val selectTabAfter: Boolean)
 
 private fun currentProgramTitle(tvgId: String?, epgPrograms: Map<String, List<EpgProgram>>): String? {
     if (tvgId.isNullOrBlank()) return null
@@ -58,38 +65,82 @@ fun ChannelListScreen(
     favorites: Set<String>,
     epgPrograms: Map<String, List<EpgProgram>>,
     recentlyWatched: List<String>,
+    lockedGroupTitles: Set<String>,
+    parentalPin: String?,
+    newChannelUrls: Set<String>,
+    watchTimeTotals: Map<String, Long>,
     onChannelClick: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
+    onMoveChannel: (Channel, Channel) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenEpg: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedTab by remember { mutableStateOf(ALL_TAB) }
+    var liveNowOnly by remember { mutableStateOf(false) }
+    var unlockedGroups by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var pendingUnlock by remember { mutableStateOf<PendingUnlock?>(null) }
+    var pinError by remember { mutableStateOf(false) }
 
     val allChannelsLabel = stringResource(R.string.all_channels)
     val favoritesLabel = stringResource(R.string.favorites_group)
     val continueWatchingLabel = stringResource(R.string.continue_watching_group)
+    val newChannelsLabel = stringResource(R.string.new_channels_group)
+    val popularChannelsLabel = stringResource(R.string.popular_channels_group)
 
-    val allGroupTitles = remember(channels) {
-        channels.map { it.groupTitle.ifBlank { allChannelsLabel } }.distinct().sorted()
+    fun isGroupLocked(rawGroupTitle: String): Boolean =
+        rawGroupTitle in lockedGroupTitles && !parentalPin.isNullOrBlank() && rawGroupTitle !in unlockedGroups
+
+    fun requestGroupAccess(rawGroupTitle: String, selectTabAfter: Boolean) {
+        if (isGroupLocked(rawGroupTitle)) {
+            pinError = false
+            pendingUnlock = PendingUnlock(rawGroupTitle, selectTabAfter)
+        } else if (selectTabAfter) {
+            selectedTab = rawGroupTitle
+        }
     }
-    val tabs = remember(allGroupTitles, allChannelsLabel, favoritesLabel) {
+
+    val allGroupTitlesRaw = remember(channels) {
+        channels.map { it.groupTitle }.distinct().sorted()
+    }
+    val tabs = remember(allGroupTitlesRaw, allChannelsLabel, favoritesLabel) {
         listOf(ALL_TAB to allChannelsLabel, FAVORITES_TAB to favoritesLabel) +
-            allGroupTitles.map { it to it }
+            allGroupTitlesRaw.map { raw -> raw to raw.ifBlank { allChannelsLabel } }
     }
 
-    val filteredChannels = if (query.isBlank()) {
-        channels
-    } else {
-        channels.filter { it.name.contains(query, ignoreCase = true) }
+    val filteredChannels = remember(channels, query, liveNowOnly, epgPrograms) {
+        val tokens = query.trim().lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
+        val base = if (tokens.isEmpty()) {
+            channels
+        } else {
+            channels.filter { channel ->
+                val haystack = (channel.name + " " + channel.groupTitle).lowercase()
+                tokens.all { haystack.contains(it) }
+            }
+        }
+        if (liveNowOnly) {
+            base.filter { currentProgramTitle(it.tvgId, epgPrograms) != null }
+        } else {
+            base
+        }
     }
     val favoriteChannels = filteredChannels.filter { it.streamUrl in favorites }
-    val groups = filteredChannels
-        .groupBy { it.groupTitle.ifBlank { allChannelsLabel } }
-        .toSortedMap()
+    val groups = filteredChannels.groupBy { it.groupTitle }.toSortedMap()
 
     val recentChannels = if (query.isBlank()) {
         recentlyWatched.mapNotNull { url -> channels.find { it.streamUrl == url } }
+    } else {
+        emptyList()
+    }
+    val newChannels = if (query.isBlank()) {
+        channels.filter { it.streamUrl in newChannelUrls }
+    } else {
+        emptyList()
+    }
+    val popularChannels = if (query.isBlank()) {
+        channels.filter { (watchTimeTotals[it.streamUrl] ?: 0L) > 0L }
+            .sortedByDescending { watchTimeTotals[it.streamUrl] ?: 0L }
+            .take(POPULAR_CHANNELS_LIMIT)
     } else {
         emptyList()
     }
@@ -119,6 +170,14 @@ fun ChannelListScreen(
                 ),
                 modifier = Modifier.weight(1f),
             )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = liveNowOnly,
+                    onCheckedChange = { liveNowOnly = it },
+                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
+                )
+                M3Text(stringResource(R.string.live_now_only_label), color = Color.White)
+            }
             Button(onClick = onOpenEpg) {
                 M3Text(stringResource(R.string.epg_button))
             }
@@ -127,7 +186,17 @@ fun ChannelListScreen(
             }
         }
 
-        CategoryTabs(tabs = tabs, selected = selectedTab, onSelect = { selectedTab = it })
+        CategoryTabs(
+            tabs = tabs,
+            selected = selectedTab,
+            onSelect = { key ->
+                if (key == ALL_TAB || key == FAVORITES_TAB) {
+                    selectedTab = key
+                } else {
+                    requestGroupAccess(key, selectTabAfter = true)
+                }
+            },
+        )
 
         if (selectedTab == ALL_TAB) {
             TvLazyColumn(
@@ -152,6 +221,7 @@ fun ChannelListScreen(
                             channels = recentChannels,
                             favorites = favorites,
                             epgPrograms = epgPrograms,
+                            newChannelUrls = newChannelUrls,
                             onChannelClick = onChannelClick,
                             onToggleFavorite = onToggleFavorite,
                         )
@@ -165,55 +235,187 @@ fun ChannelListScreen(
                             channels = favoriteChannels,
                             favorites = favorites,
                             epgPrograms = epgPrograms,
+                            newChannelUrls = newChannelUrls,
                             onChannelClick = onChannelClick,
                             onToggleFavorite = onToggleFavorite,
                         )
                     }
                 }
 
-                groups.forEach { (groupTitle, groupChannels) ->
-                    item { SectionTitle(groupTitle) }
+                if (newChannels.isNotEmpty()) {
+                    item { SectionTitle(newChannelsLabel) }
                     item {
                         ChannelRow(
-                            channels = groupChannels,
+                            channels = newChannels,
                             favorites = favorites,
                             epgPrograms = epgPrograms,
+                            newChannelUrls = newChannelUrls,
                             onChannelClick = onChannelClick,
                             onToggleFavorite = onToggleFavorite,
                         )
+                    }
+                }
+
+                if (popularChannels.isNotEmpty()) {
+                    item { SectionTitle(popularChannelsLabel) }
+                    item {
+                        ChannelRow(
+                            channels = popularChannels,
+                            favorites = favorites,
+                            epgPrograms = epgPrograms,
+                            newChannelUrls = newChannelUrls,
+                            onChannelClick = onChannelClick,
+                            onToggleFavorite = onToggleFavorite,
+                        )
+                    }
+                }
+
+                groups.forEach { (rawGroupTitle, groupChannels) ->
+                    val displayLabel = rawGroupTitle.ifBlank { allChannelsLabel }
+                    item { SectionTitle(displayLabel) }
+                    if (isGroupLocked(rawGroupTitle)) {
+                        item {
+                            LockedGroupPlaceholder(
+                                onClick = { requestGroupAccess(rawGroupTitle, selectTabAfter = false) },
+                            )
+                        }
+                    } else {
+                        item {
+                            ChannelRow(
+                                channels = groupChannels,
+                                favorites = favorites,
+                                epgPrograms = epgPrograms,
+                                newChannelUrls = newChannelUrls,
+                                onChannelClick = onChannelClick,
+                                onToggleFavorite = onToggleFavorite,
+                                onMoveChannel = onMoveChannel,
+                            )
+                        }
                     }
                 }
             }
         } else {
-            val tabChannels = if (selectedTab == FAVORITES_TAB) {
+            val isFavTab = selectedTab == FAVORITES_TAB
+            val tabChannels = if (isFavTab) {
                 favoriteChannels
             } else {
-                filteredChannels.filter { it.groupTitle.ifBlank { allChannelsLabel } == selectedTab }
+                filteredChannels.filter { it.groupTitle == selectedTab }
             }
+            val tabLocked = !isFavTab && isGroupLocked(selectedTab)
 
-            if (tabChannels.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.empty_playlist),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                TvLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 24.dp),
-                ) {
-                    item {
-                        ChannelRow(
-                            channels = tabChannels,
-                            favorites = favorites,
-                            epgPrograms = epgPrograms,
-                            onChannelClick = onChannelClick,
-                            onToggleFavorite = onToggleFavorite,
+            when {
+                tabLocked -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        LockedGroupPlaceholder(
+                            onClick = { requestGroupAccess(selectedTab, selectTabAfter = false) },
                         )
                     }
                 }
+                tabChannels.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = stringResource(R.string.empty_playlist),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                else -> {
+                    TvLazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 24.dp),
+                    ) {
+                        item {
+                            ChannelRow(
+                                channels = tabChannels,
+                                favorites = favorites,
+                                epgPrograms = epgPrograms,
+                                newChannelUrls = newChannelUrls,
+                                onChannelClick = onChannelClick,
+                                onToggleFavorite = onToggleFavorite,
+                                onMoveChannel = onMoveChannel,
+                            )
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    val unlockTarget = pendingUnlock
+    if (unlockTarget != null) {
+        PinDialog(
+            showError = pinError,
+            onConfirm = { enteredPin ->
+                if (enteredPin == parentalPin) {
+                    unlockedGroups = unlockedGroups + unlockTarget.groupTitle
+                    if (unlockTarget.selectTabAfter) {
+                        selectedTab = unlockTarget.groupTitle
+                    }
+                    pendingUnlock = null
+                    pinError = false
+                } else {
+                    pinError = true
+                }
+            },
+            onDismiss = { pendingUnlock = null },
+        )
+    }
+}
+
+@Composable
+private fun PinDialog(
+    showError: Boolean,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var pin by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { M3Text(stringResource(R.string.parental_pin_dialog_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { pin = it },
+                    label = { M3Text(stringResource(R.string.parental_pin_label)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+                if (showError) {
+                    M3Text(
+                        text = stringResource(R.string.parental_pin_error),
+                        color = androidx.compose.ui.graphics.Color(0xFFFF6B6B),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(pin) }) {
+                M3Text(stringResource(R.string.parental_pin_confirm))
+            }
+        },
+        dismissButton = {
+            Button(onClick = onDismiss) {
+                M3Text(stringResource(R.string.parental_pin_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun LockedGroupPlaceholder(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp)
+            .height(80.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = stringResource(R.string.locked_group_placeholder),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -266,20 +468,34 @@ private fun ChannelRow(
     channels: List<Channel>,
     favorites: Set<String>,
     epgPrograms: Map<String, List<EpgProgram>>,
+    newChannelUrls: Set<String> = emptySet(),
     onChannelClick: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
+    onMoveChannel: ((Channel, Channel) -> Unit)? = null,
 ) {
+    val indexedChannels = channels.withIndex().toList()
     TvLazyRow(
         contentPadding = PaddingValues(horizontal = 32.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        items(channels) { channel ->
+        items(indexedChannels) { (index, channel) ->
             ChannelTile(
                 channel = channel,
                 isFavorite = channel.streamUrl in favorites,
+                isNew = channel.streamUrl in newChannelUrls,
                 programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
                 onClick = { onChannelClick(channel) },
                 onToggleFavorite = { onToggleFavorite(channel) },
+                onMoveUp = if (onMoveChannel != null && index > 0) {
+                    { onMoveChannel(channel, channels[index - 1]) }
+                } else {
+                    null
+                },
+                onMoveDown = if (onMoveChannel != null && index < channels.lastIndex) {
+                    { onMoveChannel(channel, channels[index + 1]) }
+                } else {
+                    null
+                },
             )
         }
     }
@@ -353,15 +569,19 @@ private fun HeroBanner(
 private fun ChannelTile(
     channel: Channel,
     isFavorite: Boolean,
+    isNew: Boolean = false,
     programTitle: String?,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null,
 ) {
+    val showReorder = onMoveUp != null || onMoveDown != null
     Card(
         onClick = onClick,
         modifier = Modifier
             .width(200.dp)
-            .height(184.dp),
+            .height(if (showReorder) 220.dp else 184.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -385,6 +605,16 @@ private fun ChannelTile(
                         text = channel.name.take(2).uppercase(),
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (isNew) {
+                    M3Text(
+                        text = stringResource(R.string.new_channel_badge),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(horizontal = 4.dp),
                     )
                 }
             }
@@ -412,6 +642,24 @@ private fun ChannelTile(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 8.dp),
                 )
+            }
+            if (showReorder) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(
+                        onClick = { onMoveUp?.invoke() },
+                        enabled = onMoveUp != null,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        M3Text("▲")
+                    }
+                    IconButton(
+                        onClick = { onMoveDown?.invoke() },
+                        enabled = onMoveDown != null,
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        M3Text("▼")
+                    }
+                }
             }
         }
     }

@@ -39,6 +39,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastUrl = MutableStateFlow<String?>(null)
     val lastUrl: StateFlow<String?> = _lastUrl
 
+    private val _playlistUrls = MutableStateFlow<List<String>>(emptyList())
+    val playlistUrls: StateFlow<List<String>> = _playlistUrls
+
+    private val _profiles = MutableStateFlow<List<String>>(emptyList())
+    val profiles: StateFlow<List<String>> = _profiles
+
+    private val _activeProfile = MutableStateFlow("")
+    val activeProfile: StateFlow<String> = _activeProfile
+
     private val _favorites = MutableStateFlow<Set<String>>(emptySet())
     val favorites: StateFlow<Set<String>> = _favorites
 
@@ -57,10 +66,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _hiddenGroupTitles = MutableStateFlow<Set<String>>(emptySet())
     val hiddenGroupTitles: StateFlow<Set<String>> = _hiddenGroupTitles
 
+    private val _lockedGroupTitles = MutableStateFlow<Set<String>>(emptySet())
+    val lockedGroupTitles: StateFlow<Set<String>> = _lockedGroupTitles
+
+    private val _parentalPin = MutableStateFlow<String?>(null)
+    val parentalPin: StateFlow<String?> = _parentalPin
+
+    private val _newChannelUrls = MutableStateFlow<Set<String>>(emptySet())
+    val newChannelUrls: StateFlow<Set<String>> = _newChannelUrls
+
+    private val _channelOrder = MutableStateFlow<List<String>>(emptyList())
+    val channelOrder: StateFlow<List<String>> = _channelOrder
+
+    private val _watchTimeTotals = MutableStateFlow<Map<String, Long>>(emptyMap())
+    val watchTimeTotals: StateFlow<Map<String, Long>> = _watchTimeTotals
+
     init {
         viewModelScope.launch {
-            repository.lastPlaylistUrl.collect { url ->
-                _lastUrl.update { url }
+            repository.migrateLegacyDataIfNeeded()
+            refetchAll()
+        }
+        viewModelScope.launch {
+            repository.playlistUrls.collect { urls ->
+                _playlistUrls.update { urls }
+                _lastUrl.update { urls.lastOrNull() }
+            }
+        }
+        viewModelScope.launch {
+            repository.profiles.collect { names ->
+                _profiles.update { names }
+            }
+        }
+        viewModelScope.launch {
+            repository.activeProfile.collect { name ->
+                _activeProfile.update { name }
             }
         }
         viewModelScope.launch {
@@ -89,6 +128,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _hiddenGroupTitles.update { groups }
             }
         }
+        viewModelScope.launch {
+            repository.lockedGroupTitles.collect { groups ->
+                _lockedGroupTitles.update { groups }
+            }
+        }
+        viewModelScope.launch {
+            repository.parentalPin.collect { pin ->
+                _parentalPin.update { pin }
+            }
+        }
+        viewModelScope.launch {
+            repository.newChannelUrls.collect { urls ->
+                _newChannelUrls.update { urls }
+            }
+        }
+        viewModelScope.launch {
+            repository.channelOrder.collect { order ->
+                _channelOrder.update { order }
+            }
+        }
+        viewModelScope.launch {
+            repository.watchTimeTotals.collect { totals ->
+                _watchTimeTotals.update { totals }
+            }
+        }
     }
 
     fun loadPlaylist(url: String) {
@@ -96,16 +160,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (trimmed.isEmpty()) return
 
         viewModelScope.launch {
-            _playlistState.update { PlaylistState.Loading }
+            repository.addPlaylistUrl(trimmed)
+            refetchAll()
+        }
+    }
+
+    fun removePlaylistUrl(url: String) {
+        viewModelScope.launch {
+            repository.removePlaylistUrl(url)
+            refetchAll()
+        }
+    }
+
+    private suspend fun refetchAll() {
+        val urls = repository.playlistUrls.first()
+        if (urls.isEmpty()) {
+            _playlistState.update { PlaylistState.Idle }
+            return
+        }
+
+        _playlistState.update { PlaylistState.Loading }
+        val merged = LinkedHashMap<String, Channel>()
+        var lastError: String? = null
+        for (url in urls) {
             try {
-                val channels = repository.fetchFromUrl(trimmed)
-                repository.saveLastPlaylistUrl(trimmed)
-                _playlistState.update { PlaylistState.Loaded(channels) }
-                enrichLogos(channels)
+                val channels = repository.fetchFromUrl(url)
+                for (channel in channels) {
+                    merged.putIfAbsent(channel.streamUrl, channel)
+                }
             } catch (e: Exception) {
-                _playlistState.update { PlaylistState.Error(e.message ?: "Unknown error") }
+                lastError = e.message ?: "Unknown error"
             }
         }
+
+        if (merged.isEmpty()) {
+            _playlistState.update { PlaylistState.Error(lastError ?: "Unknown error") }
+            return
+        }
+
+        val channels = merged.values.toList()
+        repository.updateKnownChannels(channels)
+        _playlistState.update { PlaylistState.Loaded(channels) }
+        enrichLogos(channels)
     }
 
     private fun enrichLogos(originalChannels: List<Channel>) {
@@ -129,6 +225,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addProfile(name: String) {
+        viewModelScope.launch {
+            repository.addProfile(name)
+        }
+    }
+
+    fun removeProfile(name: String) {
+        viewModelScope.launch {
+            repository.removeProfile(name)
+        }
+    }
+
+    fun setActiveProfile(name: String) {
+        viewModelScope.launch {
+            repository.setActiveProfile(name)
+        }
+    }
+
     fun loadEpg(url: String) {
         val trimmed = url.trim()
         if (trimmed.isEmpty()) return
@@ -145,9 +259,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setGroupLocked(groupTitle: String, locked: Boolean) {
+        viewModelScope.launch {
+            repository.setGroupLocked(groupTitle, locked)
+        }
+    }
+
+    fun setParentalPin(pin: String?) {
+        viewModelScope.launch {
+            repository.setParentalPin(pin)
+        }
+    }
+
     fun recordWatched(streamUrl: String) {
         viewModelScope.launch {
             repository.recordWatched(streamUrl)
+        }
+    }
+
+    fun swapChannelOrder(streamUrlA: String, streamUrlB: String, allKnownStreamUrls: List<String>) {
+        viewModelScope.launch {
+            repository.swapChannelOrder(streamUrlA, streamUrlB, allKnownStreamUrls)
+        }
+    }
+
+    fun addWatchTime(streamUrl: String, deltaMillis: Long) {
+        viewModelScope.launch {
+            repository.addWatchTime(streamUrl, deltaMillis)
+        }
+    }
+
+    fun exportSettings(onResult: (String) -> Unit) {
+        viewModelScope.launch {
+            onResult(repository.exportSettingsJson())
+        }
+    }
+
+    fun importSettings(json: String) {
+        viewModelScope.launch {
+            repository.importSettingsJson(json)
+            refetchAll()
         }
     }
 

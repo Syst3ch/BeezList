@@ -1,5 +1,6 @@
 package com.beezlist.tv.ui.settings
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.beezlist.tv.EpgState
@@ -37,20 +40,42 @@ private val ErrorRed = Color(0xFFFF6B6B)
 
 @Composable
 fun SettingsScreen(
-    currentUrl: String?,
+    playlistUrls: List<String>,
     playlistState: PlaylistState,
     epgUrl: String?,
     epgState: EpgState,
     allGroupTitles: List<String>,
     hiddenGroupTitles: Set<String>,
-    onLoadPlaylist: (String) -> Unit,
+    lockedGroupTitles: Set<String>,
+    parentalPin: String?,
+    profiles: List<String>,
+    activeProfile: String,
+    onAddPlaylist: (String) -> Unit,
+    onRemovePlaylist: (String) -> Unit,
     onLoadEpg: (String) -> Unit,
     onToggleGroupHidden: (String, Boolean) -> Unit,
+    onToggleGroupLocked: (String, Boolean) -> Unit,
+    onSetParentalPin: (String) -> Unit,
+    onSelectProfile: (String) -> Unit,
+    onAddProfile: (String) -> Unit,
+    onRemoveProfile: (String) -> Unit,
+    onExportSettings: ((String) -> Unit) -> Unit,
+    onImportSettings: (String) -> Unit,
     onScanQr: () -> Unit,
     onBack: () -> Unit,
 ) {
-    var url by remember(currentUrl) { mutableStateOf(currentUrl.orEmpty()) }
+    val context = LocalContext.current
+    var newPlaylistUrl by remember { mutableStateOf("") }
     var epgUrlInput by remember(epgUrl) { mutableStateOf(epgUrl.orEmpty()) }
+    var newProfileName by remember { mutableStateOf("") }
+    var pinInput by remember(parentalPin) { mutableStateOf(parentalPin.orEmpty()) }
+    var importInput by remember { mutableStateOf("") }
+
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+    )
 
     Box(
         modifier = Modifier
@@ -69,21 +94,37 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
 
+            Text(
+                text = stringResource(R.string.settings_playlists_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            playlistUrls.forEach { url ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    M3Text(
+                        text = url,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f, fill = false).widthIn(max = 420.dp),
+                    )
+                    Button(onClick = { onRemovePlaylist(url) }) {
+                        M3Text(stringResource(R.string.remove_playlist_button))
+                    }
+                }
+            }
             OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
+                value = newPlaylistUrl,
+                onValueChange = { newPlaylistUrl = it },
                 label = { M3Text(stringResource(R.string.playlist_url_label)) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
 
-            Button(onClick = { onLoadPlaylist(url) }) {
-                M3Text(stringResource(R.string.load_playlist))
+            Button(onClick = {
+                onAddPlaylist(newPlaylistUrl)
+                newPlaylistUrl = ""
+            }) {
+                M3Text(stringResource(R.string.add_playlist_button))
             }
 
             Button(onClick = onScanQr) {
@@ -106,16 +147,52 @@ fun SettingsScreen(
                 else -> Unit
             }
 
+            Text(
+                text = stringResource(R.string.settings_profiles_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            profiles.forEach { profile ->
+                val isActive = profile == activeProfile
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Button(
+                        onClick = { onSelectProfile(profile) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isActive) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            },
+                        ),
+                    ) {
+                        M3Text(profile)
+                    }
+                    Button(onClick = { onRemoveProfile(profile) }) {
+                        M3Text(stringResource(R.string.remove_profile_button))
+                    }
+                }
+            }
+            OutlinedTextField(
+                value = newProfileName,
+                onValueChange = { newProfileName = it },
+                label = { M3Text(stringResource(R.string.profile_name_label)) },
+                singleLine = true,
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
+            )
+            Button(onClick = {
+                onAddProfile(newProfileName)
+                newProfileName = ""
+            }) {
+                M3Text(stringResource(R.string.add_profile_button))
+            }
+
             OutlinedTextField(
                 value = epgUrlInput,
                 onValueChange = { epgUrlInput = it },
                 label = { M3Text(stringResource(R.string.epg_url_label)) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                ),
+                colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
 
@@ -152,6 +229,7 @@ fun SettingsScreen(
                 ) {
                     allGroupTitles.forEach { group ->
                         val isVisible = group !in hiddenGroupTitles
+                        val isLocked = group in lockedGroupTitles
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = isVisible,
@@ -163,10 +241,66 @@ fun SettingsScreen(
                             M3Text(
                                 text = group.ifBlank { allChannelsLabel },
                                 color = Color.White,
+                                modifier = Modifier.weight(1f, fill = false),
                             )
+                            Checkbox(
+                                checked = isLocked,
+                                onCheckedChange = { checked -> onToggleGroupLocked(group, checked) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                            M3Text(stringResource(R.string.lock_group_label), color = Color.White)
                         }
                     }
                 }
+            }
+
+            Text(
+                text = stringResource(R.string.parental_pin_section_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            OutlinedTextField(
+                value = pinInput,
+                onValueChange = { pinInput = it },
+                label = { M3Text(stringResource(R.string.parental_pin_label)) },
+                singleLine = true,
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
+            )
+            Button(onClick = { onSetParentalPin(pinInput) }) {
+                M3Text(stringResource(R.string.save_pin_button))
+            }
+
+            Text(
+                text = stringResource(R.string.backup_section_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Button(onClick = {
+                onExportSettings { json ->
+                    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, json)
+                    }
+                    context.startActivity(Intent.createChooser(sendIntent, null))
+                }
+            }) {
+                M3Text(stringResource(R.string.export_settings_button))
+            }
+            OutlinedTextField(
+                value = importInput,
+                onValueChange = { importInput = it },
+                label = { M3Text(stringResource(R.string.import_settings_label)) },
+                colors = fieldColors,
+                modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
+            )
+            Button(onClick = {
+                onImportSettings(importInput)
+                importInput = ""
+            }) {
+                M3Text(stringResource(R.string.import_settings_button))
             }
 
             Button(onClick = onBack) {
