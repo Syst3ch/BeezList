@@ -12,6 +12,7 @@
         android:required="false" />
 
     <application
+        android:name=".BeezListApplication"
         android:allowBackup="true"
         android:supportsRtl="true"
         android:banner="@drawable/banner_tv"

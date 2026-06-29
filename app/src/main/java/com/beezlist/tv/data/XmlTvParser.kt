@@ -2,7 +2,7 @@ package com.beezlist.tv.data
 
 import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
-import java.io.Reader
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -23,10 +23,12 @@ object XmlTvParser {
 
     private val dateFormat = SimpleDateFormat("yyyyMMddHHmmss Z", Locale.US)
 
-    fun parse(reader: Reader): List<EpgProgram> {
+    fun parse(stream: InputStream): List<EpgProgram> {
         val programs = mutableListOf<EpgProgram>()
         val parser = Xml.newPullParser()
-        parser.setInput(reader)
+        // Pass null encoding so the parser auto-detects from the XML declaration/BOM
+        // instead of assuming UTF-8, which would mangle Hebrew titles in windows-1255 feeds.
+        parser.setInput(stream, null)
 
         var inProgramme = false
         var channelId: String? = null

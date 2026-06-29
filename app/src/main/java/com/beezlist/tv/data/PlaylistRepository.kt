@@ -11,8 +11,29 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.BufferedReader
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.Charset
+import java.nio.charset.CodingErrorAction
 import java.util.concurrent.TimeUnit
+
+private val HEBREW_FALLBACK_CHARSET = Charset.forName("windows-1255")
+
+/**
+ * Many Hebrew IPTV panels serve M3U playlists without declaring a charset, encoded in
+ * windows-1255 rather than UTF-8. Decoding strictly as UTF-8 first and falling back on
+ * failure avoids mojibake channel names without breaking the common UTF-8 case.
+ */
+private fun decodeText(bytes: ByteArray): String {
+    val strictUtf8 = Charsets.UTF_8.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+    return try {
+        strictUtf8.decode(ByteBuffer.wrap(bytes)).toString()
+    } catch (e: CharacterCodingException) {
+        String(bytes, HEBREW_FALLBACK_CHARSET)
+    }
+}
 
 private val Context.playlistDataStore by preferencesDataStore(name = "beezlist_playlist")
 private val LAST_PLAYLIST_URL = stringPreferencesKey("last_playlist_url")
@@ -57,9 +78,7 @@ class PlaylistRepository(private val context: Context) {
                 throw IllegalStateException("HTTP ${response.code}")
             }
             val body = response.body ?: throw IllegalStateException("Empty response body")
-            body.byteStream().bufferedReader().use { reader: BufferedReader ->
-                M3uParser.parse(reader)
-            }
+            M3uParser.parse(decodeText(body.bytes()).reader().buffered())
         }
     }
 
@@ -77,9 +96,7 @@ class PlaylistRepository(private val context: Context) {
                 throw IllegalStateException("HTTP ${response.code}")
             }
             val body = response.body ?: throw IllegalStateException("Empty response body")
-            body.byteStream().bufferedReader().use { reader: BufferedReader ->
-                XmlTvParser.parse(reader)
-            }
+            body.byteStream().use { stream -> XmlTvParser.parse(stream) }
         }
     }
 
