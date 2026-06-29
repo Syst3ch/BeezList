@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.beezlist.tv.data.Channel
+import com.beezlist.tv.data.EpgProgram
 import com.beezlist.tv.data.PlaylistRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -15,6 +17,13 @@ sealed interface PlaylistState {
     data object Loading : PlaylistState
     data class Loaded(val channels: List<Channel>) : PlaylistState
     data class Error(val message: String) : PlaylistState
+}
+
+sealed interface EpgState {
+    data object Idle : EpgState
+    data object Loading : EpgState
+    data object Loaded : EpgState
+    data class Error(val message: String) : EpgState
 }
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -30,6 +39,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _favorites = MutableStateFlow<Set<String>>(emptySet())
     val favorites: StateFlow<Set<String>> = _favorites
 
+    private val _epgUrl = MutableStateFlow<String?>(null)
+    val epgUrl: StateFlow<String?> = _epgUrl
+
+    private val _epgState = MutableStateFlow<EpgState>(EpgState.Idle)
+    val epgState: StateFlow<EpgState> = _epgState
+
+    private val _epgPrograms = MutableStateFlow<Map<String, List<EpgProgram>>>(emptyMap())
+    val epgPrograms: StateFlow<Map<String, List<EpgProgram>>> = _epgPrograms
+
     init {
         viewModelScope.launch {
             repository.lastPlaylistUrl.collect { url ->
@@ -39,6 +57,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.favoriteChannelUrls.collect { urls ->
                 _favorites.update { urls }
+            }
+        }
+        viewModelScope.launch {
+            repository.epgUrl.collect { url ->
+                _epgUrl.update { url }
+            }
+        }
+        viewModelScope.launch {
+            val savedEpgUrl = repository.epgUrl.first()
+            if (!savedEpgUrl.isNullOrBlank()) {
+                fetchAndApplyEpg(savedEpgUrl)
             }
         }
     }
@@ -66,6 +95,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleFavorite(streamUrl: String) {
         viewModelScope.launch {
             repository.toggleFavorite(streamUrl)
+        }
+    }
+
+    fun loadEpg(url: String) {
+        val trimmed = url.trim()
+        if (trimmed.isEmpty()) return
+
+        viewModelScope.launch {
+            repository.saveEpgUrl(trimmed)
+            fetchAndApplyEpg(trimmed)
+        }
+    }
+
+    private suspend fun fetchAndApplyEpg(url: String) {
+        _epgState.update { EpgState.Loading }
+        try {
+            val programs = repository.fetchEpg(url)
+            _epgPrograms.update { programs.groupBy { it.channelId } }
+            _epgState.update { EpgState.Loaded }
+        } catch (e: Exception) {
+            _epgState.update { EpgState.Error(e.message ?: "Unknown error") }
         }
     }
 }

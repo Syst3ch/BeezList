@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.beezlist.tv.EpgState
 import com.beezlist.tv.PlaylistState
 import com.beezlist.tv.R
 
@@ -32,11 +33,15 @@ private val ErrorRed = Color(0xFFFF6B6B)
 fun SettingsScreen(
     currentUrl: String?,
     playlistState: PlaylistState,
+    epgUrl: String?,
+    epgState: EpgState,
     onLoadPlaylist: (String) -> Unit,
+    onLoadEpg: (String) -> Unit,
     onScanQr: () -> Unit,
     onBack: () -> Unit,
 ) {
     var url by remember(currentUrl) { mutableStateOf(currentUrl.orEmpty()) }
+    var epgUrlInput by remember(epgUrl) { mutableStateOf(epgUrl.orEmpty()) }
 
     Box(
         modifier = Modifier
@@ -75,10 +80,6 @@ fun SettingsScreen(
                 Text(stringResource(R.string.scan_qr_button))
             }
 
-            Button(onClick = onBack) {
-                Text(stringResource(R.string.settings_back))
-            }
-
             when (playlistState) {
                 is PlaylistState.Loading -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -93,6 +94,43 @@ fun SettingsScreen(
                     )
                 }
                 else -> Unit
+            }
+
+            OutlinedTextField(
+                value = epgUrlInput,
+                onValueChange = { epgUrlInput = it },
+                label = { M3Text(stringResource(R.string.epg_url_label)) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                ),
+                modifier = Modifier.width(560.dp),
+            )
+
+            Button(onClick = { onLoadEpg(epgUrlInput) }) {
+                Text(stringResource(R.string.load_epg))
+            }
+
+            when (epgState) {
+                is EpgState.Loading -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.loading_epg))
+                    }
+                }
+                is EpgState.Error -> {
+                    Text(
+                        text = stringResource(R.string.error_loading_epg),
+                        color = ErrorRed,
+                    )
+                }
+                else -> Unit
+            }
+
+            Button(onClick = onBack) {
+                Text(stringResource(R.string.settings_back))
             }
         }
     }

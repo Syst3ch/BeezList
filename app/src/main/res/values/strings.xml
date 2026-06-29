@@ -22,4 +22,8 @@
     <string name="settings_title">הגדרות</string>
     <string name="settings_back">חזרה</string>
     <string name="favorites_group">מועדפים</string>
+    <string name="epg_url_label">כתובת מדריך שידורים (XMLTV URL)</string>
+    <string name="load_epg">טען מדריך שידורים</string>
+    <string name="loading_epg">טוען מדריך שידורים…</string>
+    <string name="error_loading_epg">שגיאה בטעינת מדריך השידורים. בדוק את הכתובת ונסה שוב.</string>
 </resources>

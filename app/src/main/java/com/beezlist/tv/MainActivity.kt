@@ -57,6 +57,9 @@ private fun BeezListApp(viewModel: MainViewModel) {
     val playlistState by viewModel.playlistState.collectAsState()
     val lastUrl by viewModel.lastUrl.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
+    val epgUrl by viewModel.epgUrl.collectAsState()
+    val epgState by viewModel.epgState.collectAsState()
+    val epgPrograms by viewModel.epgPrograms.collectAsState()
 
     NavHost(navController = navController, startDestination = Routes.INPUT) {
         composable(Routes.INPUT) {
@@ -89,6 +92,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
             ChannelListScreen(
                 channels = channels,
                 favorites = favorites,
+                epgPrograms = epgPrograms,
                 onChannelClick = { channel -> navController.navigate(Routes.player(channel.streamUrl)) },
                 onToggleFavorite = { channel -> viewModel.toggleFavorite(channel.streamUrl) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -98,7 +102,10 @@ private fun BeezListApp(viewModel: MainViewModel) {
             SettingsScreen(
                 currentUrl = lastUrl,
                 playlistState = playlistState,
+                epgUrl = epgUrl,
+                epgState = epgState,
                 onLoadPlaylist = { url -> viewModel.loadPlaylist(url) },
+                onLoadEpg = { url -> viewModel.loadEpg(url) },
                 onScanQr = { navController.navigate(Routes.QR_PAIRING) },
                 onBack = { navController.popBackStack() },
             )

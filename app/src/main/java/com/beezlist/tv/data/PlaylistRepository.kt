@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 private val Context.playlistDataStore by preferencesDataStore(name = "beezlist_playlist")
 private val LAST_PLAYLIST_URL = stringPreferencesKey("last_playlist_url")
 private val FAVORITE_CHANNEL_URLS = stringSetPreferencesKey("favorite_channel_urls")
+private val EPG_URL = stringPreferencesKey("epg_url")
 
 class PlaylistRepository(private val context: Context) {
 
@@ -55,6 +56,26 @@ class PlaylistRepository(private val context: Context) {
             val body = response.body ?: throw IllegalStateException("Empty response body")
             body.byteStream().bufferedReader().use { reader: BufferedReader ->
                 M3uParser.parse(reader)
+            }
+        }
+    }
+
+    val epgUrl: Flow<String?> =
+        context.playlistDataStore.data.map { it[EPG_URL] }
+
+    suspend fun saveEpgUrl(url: String) {
+        context.playlistDataStore.edit { it[EPG_URL] = url }
+    }
+
+    suspend fun fetchEpg(url: String): List<EpgProgram> = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url).build()
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IllegalStateException("HTTP ${response.code}")
+            }
+            val body = response.body ?: throw IllegalStateException("Empty response body")
+            body.byteStream().bufferedReader().use { reader: BufferedReader ->
+                XmlTvParser.parse(reader)
             }
         }
     }

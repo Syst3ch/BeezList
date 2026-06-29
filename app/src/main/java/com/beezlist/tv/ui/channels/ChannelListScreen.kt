@@ -36,11 +36,19 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.beezlist.tv.R
 import com.beezlist.tv.data.Channel
+import com.beezlist.tv.data.EpgProgram
+
+private fun currentProgramTitle(tvgId: String?, epgPrograms: Map<String, List<EpgProgram>>): String? {
+    if (tvgId.isNullOrBlank()) return null
+    val now = System.currentTimeMillis()
+    return epgPrograms[tvgId]?.firstOrNull { now in it.startMillis until it.stopMillis }?.title
+}
 
 @Composable
 fun ChannelListScreen(
     channels: List<Channel>,
     favorites: Set<String>,
+    epgPrograms: Map<String, List<EpgProgram>>,
     onChannelClick: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
     onOpenSettings: () -> Unit,
@@ -106,6 +114,7 @@ fun ChannelListScreen(
                             ChannelTile(
                                 channel = channel,
                                 isFavorite = true,
+                                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
                                 onClick = { onChannelClick(channel) },
                                 onToggleFavorite = { onToggleFavorite(channel) },
                             )
@@ -132,6 +141,7 @@ fun ChannelListScreen(
                             ChannelTile(
                                 channel = channel,
                                 isFavorite = channel.streamUrl in favorites,
+                                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
                                 onClick = { onChannelClick(channel) },
                                 onToggleFavorite = { onToggleFavorite(channel) },
                             )
@@ -147,6 +157,7 @@ fun ChannelListScreen(
 private fun ChannelTile(
     channel: Channel,
     isFavorite: Boolean,
+    programTitle: String?,
     onClick: () -> Unit,
     onToggleFavorite: () -> Unit,
 ) {
@@ -154,7 +165,7 @@ private fun ChannelTile(
         onClick = onClick,
         modifier = Modifier
             .width(200.dp)
-            .height(160.dp),
+            .height(184.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -195,6 +206,16 @@ private fun ChannelTile(
                 Button(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
                     Text(if (isFavorite) "★" else "☆")
                 }
+            }
+            if (!programTitle.isNullOrBlank()) {
+                Text(
+                    text = programTitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
             }
         }
     }
