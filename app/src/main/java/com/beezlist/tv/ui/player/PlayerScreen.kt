@@ -35,7 +35,11 @@ import com.beezlist.tv.R
 import com.beezlist.tv.data.Channel
 
 @Composable
-fun PlayerScreen(channels: List<Channel>, initialStreamUrl: String) {
+fun PlayerScreen(
+    channels: List<Channel>,
+    initialStreamUrl: String,
+    onWatching: (Channel) -> Unit = {},
+) {
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
 
@@ -44,6 +48,10 @@ fun PlayerScreen(channels: List<Channel>, initialStreamUrl: String) {
     }
     val currentChannel = channels.getOrNull(currentIndex)
     val streamUrl = currentChannel?.streamUrl ?: initialStreamUrl
+
+    LaunchedEffect(streamUrl) {
+        currentChannel?.let(onWatching)
+    }
 
     var hasError by remember(streamUrl) { mutableStateOf(false) }
 

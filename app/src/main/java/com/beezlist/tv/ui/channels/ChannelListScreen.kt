@@ -49,6 +49,7 @@ fun ChannelListScreen(
     channels: List<Channel>,
     favorites: Set<String>,
     epgPrograms: Map<String, List<EpgProgram>>,
+    recentlyWatched: List<String>,
     onChannelClick: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
     onOpenSettings: () -> Unit,
@@ -57,6 +58,7 @@ fun ChannelListScreen(
     var query by remember { mutableStateOf("") }
     val allChannelsLabel = stringResource(R.string.all_channels)
     val favoritesLabel = stringResource(R.string.favorites_group)
+    val continueWatchingLabel = stringResource(R.string.continue_watching_group)
     val filteredChannels = if (query.isBlank()) {
         channels
     } else {
@@ -66,6 +68,17 @@ fun ChannelListScreen(
     val groups = filteredChannels
         .groupBy { it.groupTitle.ifBlank { allChannelsLabel } }
         .toSortedMap()
+
+    val recentChannels = if (query.isBlank()) {
+        recentlyWatched.mapNotNull { url -> channels.find { it.streamUrl == url } }
+    } else {
+        emptyList()
+    }
+    val heroChannel = if (query.isBlank()) {
+        recentChannels.firstOrNull() ?: favoriteChannels.firstOrNull() ?: channels.firstOrNull()
+    } else {
+        null
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -100,6 +113,43 @@ fun ChannelListScreen(
             contentPadding = PaddingValues(vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(28.dp),
         ) {
+            if (heroChannel != null) {
+                item {
+                    HeroBanner(
+                        channel = heroChannel,
+                        programTitle = currentProgramTitle(heroChannel.tvgId, epgPrograms),
+                        onPlay = { onChannelClick(heroChannel) },
+                    )
+                }
+            }
+
+            if (recentChannels.isNotEmpty()) {
+                item {
+                    Text(
+                        text = continueWatchingLabel,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
+                    )
+                }
+                item {
+                    TvLazyRow(
+                        contentPadding = PaddingValues(horizontal = 32.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        items(recentChannels) { channel ->
+                            ChannelTile(
+                                channel = channel,
+                                isFavorite = channel.streamUrl in favorites,
+                                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
+                                onClick = { onChannelClick(channel) },
+                                onToggleFavorite = { onToggleFavorite(channel) },
+                            )
+                        }
+                    }
+                }
+            }
+
             if (favoriteChannels.isNotEmpty()) {
                 item {
                     Text(
@@ -151,6 +201,66 @@ fun ChannelListScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeroBanner(
+    channel: Channel,
+    programTitle: String?,
+    onPlay: () -> Unit,
+) {
+    Card(
+        onClick = onPlay,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp)
+            .height(220.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Box(
+                modifier = Modifier.size(120.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (!channel.logoUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = channel.logoUrl,
+                        contentDescription = channel.name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(96.dp),
+                    )
+                } else {
+                    Text(
+                        text = channel.name.take(2).uppercase(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (!programTitle.isNullOrBlank()) {
+                    Text(
+                        text = programTitle,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Button(onClick = onPlay) {
+                    Text(stringResource(R.string.play_now))
                 }
             }
         }

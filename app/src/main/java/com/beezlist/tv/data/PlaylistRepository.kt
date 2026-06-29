@@ -18,6 +18,9 @@ private val Context.playlistDataStore by preferencesDataStore(name = "beezlist_p
 private val LAST_PLAYLIST_URL = stringPreferencesKey("last_playlist_url")
 private val FAVORITE_CHANNEL_URLS = stringSetPreferencesKey("favorite_channel_urls")
 private val EPG_URL = stringPreferencesKey("epg_url")
+private val RECENTLY_WATCHED = stringPreferencesKey("recently_watched")
+private const val RECENTLY_WATCHED_LIMIT = 10
+private const val RECENTLY_WATCHED_DELIMITER = "\n"
 
 class PlaylistRepository(private val context: Context) {
 
@@ -77,6 +80,19 @@ class PlaylistRepository(private val context: Context) {
             body.byteStream().bufferedReader().use { reader: BufferedReader ->
                 XmlTvParser.parse(reader)
             }
+        }
+    }
+
+    val recentlyWatchedUrls: Flow<List<String>> =
+        context.playlistDataStore.data.map { prefs ->
+            prefs[RECENTLY_WATCHED]?.split(RECENTLY_WATCHED_DELIMITER)?.filter { it.isNotBlank() }.orEmpty()
+        }
+
+    suspend fun recordWatched(streamUrl: String) {
+        context.playlistDataStore.edit { prefs ->
+            val current = prefs[RECENTLY_WATCHED]?.split(RECENTLY_WATCHED_DELIMITER)?.filter { it.isNotBlank() }.orEmpty()
+            val updated = (listOf(streamUrl) + current.filterNot { it == streamUrl }).take(RECENTLY_WATCHED_LIMIT)
+            prefs[RECENTLY_WATCHED] = updated.joinToString(RECENTLY_WATCHED_DELIMITER)
         }
     }
 }

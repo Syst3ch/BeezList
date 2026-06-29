@@ -30,4 +30,6 @@
     <string name="epg_title">מדריך שידורים</string>
     <string name="epg_no_data">אין מידע על תוכניות</string>
     <string name="epg_live">באוויר</string>
+    <string name="continue_watching_group">המשך לצפות</string>
+    <string name="play_now">צפה עכשיו</string>
 </resources>

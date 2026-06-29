@@ -62,6 +62,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
     val epgUrl by viewModel.epgUrl.collectAsState()
     val epgState by viewModel.epgState.collectAsState()
     val epgPrograms by viewModel.epgPrograms.collectAsState()
+    val recentlyWatched by viewModel.recentlyWatched.collectAsState()
 
     NavHost(navController = navController, startDestination = Routes.INPUT) {
         composable(Routes.INPUT) {
@@ -95,6 +96,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
                 channels = channels,
                 favorites = favorites,
                 epgPrograms = epgPrograms,
+                recentlyWatched = recentlyWatched,
                 onChannelClick = { channel -> navController.navigate(Routes.player(channel.streamUrl)) },
                 onToggleFavorite = { channel -> viewModel.toggleFavorite(channel.streamUrl) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -137,7 +139,11 @@ private fun BeezListApp(viewModel: MainViewModel) {
             val encodedUrl = backStackEntry.arguments?.getString("streamUrl").orEmpty()
             val state = playlistState
             val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
-            PlayerScreen(channels = channels, initialStreamUrl = Uri.decode(encodedUrl))
+            PlayerScreen(
+                channels = channels,
+                initialStreamUrl = Uri.decode(encodedUrl),
+                onWatching = { channel -> viewModel.recordWatched(channel.streamUrl) },
+            )
         }
     }
 }

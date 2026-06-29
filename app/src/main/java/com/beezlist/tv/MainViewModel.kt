@@ -48,6 +48,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _epgPrograms = MutableStateFlow<Map<String, List<EpgProgram>>>(emptyMap())
     val epgPrograms: StateFlow<Map<String, List<EpgProgram>>> = _epgPrograms
 
+    private val _recentlyWatched = MutableStateFlow<List<String>>(emptyList())
+    val recentlyWatched: StateFlow<List<String>> = _recentlyWatched
+
     init {
         viewModelScope.launch {
             repository.lastPlaylistUrl.collect { url ->
@@ -68,6 +71,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val savedEpgUrl = repository.epgUrl.first()
             if (!savedEpgUrl.isNullOrBlank()) {
                 fetchAndApplyEpg(savedEpgUrl)
+            }
+        }
+        viewModelScope.launch {
+            repository.recentlyWatchedUrls.collect { urls ->
+                _recentlyWatched.update { urls }
             }
         }
     }
@@ -105,6 +113,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.saveEpgUrl(trimmed)
             fetchAndApplyEpg(trimmed)
+        }
+    }
+
+    fun recordWatched(streamUrl: String) {
+        viewModelScope.launch {
+            repository.recordWatched(streamUrl)
         }
     }
 
