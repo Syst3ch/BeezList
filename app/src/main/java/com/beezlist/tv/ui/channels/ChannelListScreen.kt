@@ -1,16 +1,22 @@
 package com.beezlist.tv.ui.channels
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text as M3Text
@@ -21,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
@@ -29,14 +36,15 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.foundation.lazy.list.TvLazyColumn
 import androidx.tv.foundation.lazy.list.TvLazyRow
 import androidx.tv.foundation.lazy.list.items
-import androidx.tv.material3.Button
-import androidx.tv.material3.Card
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.beezlist.tv.R
 import com.beezlist.tv.data.Channel
 import com.beezlist.tv.data.EpgProgram
+
+private const val ALL_TAB = "__all__"
+private const val FAVORITES_TAB = "__favorites__"
 
 private fun currentProgramTitle(tvgId: String?, epgPrograms: Map<String, List<EpgProgram>>): String? {
     if (tvgId.isNullOrBlank()) return null
@@ -56,9 +64,20 @@ fun ChannelListScreen(
     onOpenEpg: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf(ALL_TAB) }
+
     val allChannelsLabel = stringResource(R.string.all_channels)
     val favoritesLabel = stringResource(R.string.favorites_group)
     val continueWatchingLabel = stringResource(R.string.continue_watching_group)
+
+    val allGroupTitles = remember(channels) {
+        channels.map { it.groupTitle.ifBlank { allChannelsLabel } }.distinct().sorted()
+    }
+    val tabs = remember(allGroupTitles, allChannelsLabel, favoritesLabel) {
+        listOf(ALL_TAB to allChannelsLabel, FAVORITES_TAB to favoritesLabel) +
+            allGroupTitles.map { it to it }
+    }
+
     val filteredChannels = if (query.isBlank()) {
         channels
     } else {
@@ -101,108 +120,167 @@ fun ChannelListScreen(
                 modifier = Modifier.weight(1f),
             )
             Button(onClick = onOpenEpg) {
-                Text(stringResource(R.string.epg_button))
+                M3Text(stringResource(R.string.epg_button))
             }
             Button(onClick = onOpenSettings) {
-                Text(stringResource(R.string.settings_button))
+                M3Text(stringResource(R.string.settings_button))
             }
         }
 
-        TvLazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp),
-        ) {
-            if (heroChannel != null) {
-                item {
-                    HeroBanner(
-                        channel = heroChannel,
-                        programTitle = currentProgramTitle(heroChannel.tvgId, epgPrograms),
-                        onPlay = { onChannelClick(heroChannel) },
-                    )
-                }
-            }
+        CategoryTabs(tabs = tabs, selected = selectedTab, onSelect = { selectedTab = it })
 
-            if (recentChannels.isNotEmpty()) {
-                item {
-                    Text(
-                        text = continueWatchingLabel,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
-                    )
+        if (selectedTab == ALL_TAB) {
+            TvLazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(28.dp),
+            ) {
+                if (heroChannel != null) {
+                    item {
+                        HeroBanner(
+                            channel = heroChannel,
+                            programTitle = currentProgramTitle(heroChannel.tvgId, epgPrograms),
+                            onPlay = { onChannelClick(heroChannel) },
+                        )
+                    }
                 }
-                item {
-                    TvLazyRow(
-                        contentPadding = PaddingValues(horizontal = 32.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(recentChannels) { channel ->
-                            ChannelTile(
-                                channel = channel,
-                                isFavorite = channel.streamUrl in favorites,
-                                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
-                                onClick = { onChannelClick(channel) },
-                                onToggleFavorite = { onToggleFavorite(channel) },
-                            )
-                        }
+
+                if (recentChannels.isNotEmpty()) {
+                    item { SectionTitle(continueWatchingLabel) }
+                    item {
+                        ChannelRow(
+                            channels = recentChannels,
+                            favorites = favorites,
+                            epgPrograms = epgPrograms,
+                            onChannelClick = onChannelClick,
+                            onToggleFavorite = onToggleFavorite,
+                        )
+                    }
+                }
+
+                if (favoriteChannels.isNotEmpty()) {
+                    item { SectionTitle(favoritesLabel) }
+                    item {
+                        ChannelRow(
+                            channels = favoriteChannels,
+                            favorites = favorites,
+                            epgPrograms = epgPrograms,
+                            onChannelClick = onChannelClick,
+                            onToggleFavorite = onToggleFavorite,
+                        )
+                    }
+                }
+
+                groups.forEach { (groupTitle, groupChannels) ->
+                    item { SectionTitle(groupTitle) }
+                    item {
+                        ChannelRow(
+                            channels = groupChannels,
+                            favorites = favorites,
+                            epgPrograms = epgPrograms,
+                            onChannelClick = onChannelClick,
+                            onToggleFavorite = onToggleFavorite,
+                        )
                     }
                 }
             }
+        } else {
+            val tabChannels = if (selectedTab == FAVORITES_TAB) {
+                favoriteChannels
+            } else {
+                filteredChannels.filter { it.groupTitle.ifBlank { allChannelsLabel } == selectedTab }
+            }
 
-            if (favoriteChannels.isNotEmpty()) {
-                item {
+            if (tabChannels.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = favoritesLabel,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
+                        text = stringResource(R.string.empty_playlist),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                item {
-                    TvLazyRow(
-                        contentPadding = PaddingValues(horizontal = 32.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(favoriteChannels) { channel ->
-                            ChannelTile(
-                                channel = channel,
-                                isFavorite = true,
-                                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
-                                onClick = { onChannelClick(channel) },
-                                onToggleFavorite = { onToggleFavorite(channel) },
-                            )
-                        }
+            } else {
+                TvLazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 24.dp),
+                ) {
+                    item {
+                        ChannelRow(
+                            channels = tabChannels,
+                            favorites = favorites,
+                            epgPrograms = epgPrograms,
+                            onChannelClick = onChannelClick,
+                            onToggleFavorite = onToggleFavorite,
+                        )
                     }
                 }
             }
+        }
+    }
+}
 
-            groups.forEach { (groupTitle, groupChannels) ->
-                item {
-                    Text(
-                        text = groupTitle,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
-                    )
-                }
-                item {
-                    TvLazyRow(
-                        contentPadding = PaddingValues(horizontal = 32.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    ) {
-                        items(groupChannels) { channel ->
-                            ChannelTile(
-                                channel = channel,
-                                isFavorite = channel.streamUrl in favorites,
-                                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
-                                onClick = { onChannelClick(channel) },
-                                onToggleFavorite = { onToggleFavorite(channel) },
-                            )
-                        }
-                    }
-                }
+@Composable
+private fun CategoryTabs(
+    tabs: List<Pair<String, String>>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    TvLazyRow(
+        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(tabs) { (key, label) ->
+            val isSelected = key == selected
+            Button(
+                onClick = { onSelect(key) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    },
+                    contentColor = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                ),
+            ) {
+                M3Text(label)
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.headlineSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 32.dp, vertical = 4.dp),
+    )
+}
+
+@Composable
+private fun ChannelRow(
+    channels: List<Channel>,
+    favorites: Set<String>,
+    epgPrograms: Map<String, List<EpgProgram>>,
+    onChannelClick: (Channel) -> Unit,
+    onToggleFavorite: (Channel) -> Unit,
+) {
+    TvLazyRow(
+        contentPadding = PaddingValues(horizontal = 32.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        items(channels) { channel ->
+            ChannelTile(
+                channel = channel,
+                isFavorite = channel.streamUrl in favorites,
+                programTitle = currentProgramTitle(channel.tvgId, epgPrograms),
+                onClick = { onChannelClick(channel) },
+                onToggleFavorite = { onToggleFavorite(channel) },
+            )
         }
     }
 }
@@ -218,38 +296,42 @@ private fun HeroBanner(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 32.dp)
-            .height(220.dp),
+            .height(260.dp),
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(24.dp),
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        ),
+                    ),
+                ),
         ) {
-            Box(
-                modifier = Modifier.size(120.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (!channel.logoUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = channel.logoUrl,
-                        contentDescription = channel.name,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(96.dp),
-                    )
-                } else {
-                    Text(
-                        text = channel.name.take(2).uppercase(),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+            if (!channel.logoUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = channel.logoUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    alpha = 0.4f,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .padding(32.dp),
+                )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(32.dp)
+                    .fillMaxWidth(0.7f),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text(
                     text = channel.name,
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 if (!programTitle.isNullOrBlank()) {
@@ -260,7 +342,7 @@ private fun HeroBanner(
                     )
                 }
                 Button(onClick = onPlay) {
-                    Text(stringResource(R.string.play_now))
+                    M3Text(stringResource(R.string.play_now))
                 }
             }
         }
@@ -317,8 +399,8 @@ private fun ChannelTile(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 8.dp).weight(1f, fill = false),
                 )
-                Button(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
-                    Text(if (isFavorite) "★" else "☆")
+                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(32.dp)) {
+                    M3Text(if (isFavorite) "★" else "☆")
                 }
             }
             if (!programTitle.isNullOrBlank()) {

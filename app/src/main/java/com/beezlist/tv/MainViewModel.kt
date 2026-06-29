@@ -5,7 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.beezlist.tv.data.Channel
 import com.beezlist.tv.data.EpgProgram
+import com.beezlist.tv.data.IptvOrgRepository
 import com.beezlist.tv.data.PlaylistRepository
+import com.beezlist.tv.data.enrichChannelLogos
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -29,6 +31,7 @@ sealed interface EpgState {
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = PlaylistRepository(application)
+    private val iptvOrgRepository = IptvOrgRepository(application)
 
     private val _playlistState = MutableStateFlow<PlaylistState>(PlaylistState.Idle)
     val playlistState: StateFlow<PlaylistState> = _playlistState
@@ -90,8 +93,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val channels = repository.fetchFromUrl(trimmed)
                 repository.saveLastPlaylistUrl(trimmed)
                 _playlistState.update { PlaylistState.Loaded(channels) }
+                enrichLogos(channels)
             } catch (e: Exception) {
                 _playlistState.update { PlaylistState.Error(e.message ?: "Unknown error") }
+            }
+        }
+    }
+
+    private fun enrichLogos(originalChannels: List<Channel>) {
+        viewModelScope.launch {
+            val index = iptvOrgRepository.loadIndex() ?: return@launch
+            val enriched = enrichChannelLogos(originalChannels, index)
+            val current = _playlistState.value
+            if (current is PlaylistState.Loaded && current.channels === originalChannels) {
+                _playlistState.update { PlaylistState.Loaded(enriched) }
             }
         }
     }
