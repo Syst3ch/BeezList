@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 import androidx.tv.material3.Surface
 import com.beezlist.tv.data.Channel
 import com.beezlist.tv.ui.channels.ChannelListScreen
+import com.beezlist.tv.ui.epg.EpgScreen
 import com.beezlist.tv.ui.input.PlaylistInputScreen
 import com.beezlist.tv.ui.pairing.QrPairingScreen
 import com.beezlist.tv.ui.player.PlayerScreen
@@ -30,6 +31,7 @@ private object Routes {
     const val QR_PAIRING = "qr_pairing"
     const val CHANNELS = "channels"
     const val SETTINGS = "settings"
+    const val EPG = "epg"
     const val PLAYER = "player/{streamUrl}"
 
     fun player(streamUrl: String) = "player/${Uri.encode(streamUrl)}"
@@ -96,6 +98,17 @@ private fun BeezListApp(viewModel: MainViewModel) {
                 onChannelClick = { channel -> navController.navigate(Routes.player(channel.streamUrl)) },
                 onToggleFavorite = { channel -> viewModel.toggleFavorite(channel.streamUrl) },
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                onOpenEpg = { navController.navigate(Routes.EPG) },
+            )
+        }
+        composable(Routes.EPG) {
+            val state = playlistState
+            val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
+            EpgScreen(
+                channels = channels,
+                epgPrograms = epgPrograms,
+                onChannelClick = { channel -> navController.navigate(Routes.player(channel.streamUrl)) },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.SETTINGS) {

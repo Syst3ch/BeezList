@@ -26,4 +26,8 @@
     <string name="load_epg">טען מדריך שידורים</string>
     <string name="loading_epg">טוען מדריך שידורים…</string>
     <string name="error_loading_epg">שגיאה בטעינת מדריך השידורים. בדוק את הכתובת ונסה שוב.</string>
+    <string name="epg_button">מדריך שידורים</string>
+    <string name="epg_title">מדריך שידורים</string>
+    <string name="epg_no_data">אין מידע על תוכניות</string>
+    <string name="epg_live">באוויר</string>
 </resources>

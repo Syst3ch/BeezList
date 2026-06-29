@@ -52,6 +52,7 @@ fun ChannelListScreen(
     onChannelClick: (Channel) -> Unit,
     onToggleFavorite: (Channel) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenEpg: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     val allChannelsLabel = stringResource(R.string.all_channels)
@@ -86,6 +87,9 @@ fun ChannelListScreen(
                 ),
                 modifier = Modifier.weight(1f),
             )
+            Button(onClick = onOpenEpg) {
+                Text(stringResource(R.string.epg_button))
+            }
             Button(onClick = onOpenSettings) {
                 Text(stringResource(R.string.settings_button))
             }
