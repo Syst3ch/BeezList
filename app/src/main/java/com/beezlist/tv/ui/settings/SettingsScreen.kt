@@ -3,12 +3,15 @@ package com.beezlist.tv.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -38,8 +41,11 @@ fun SettingsScreen(
     playlistState: PlaylistState,
     epgUrl: String?,
     epgState: EpgState,
+    allGroupTitles: List<String>,
+    hiddenGroupTitles: Set<String>,
     onLoadPlaylist: (String) -> Unit,
     onLoadEpg: (String) -> Unit,
+    onToggleGroupHidden: (String, Boolean) -> Unit,
     onScanQr: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -131,6 +137,36 @@ fun SettingsScreen(
                     )
                 }
                 else -> Unit
+            }
+
+            if (allGroupTitles.isNotEmpty()) {
+                val allChannelsLabel = stringResource(R.string.all_channels)
+                Text(
+                    text = stringResource(R.string.settings_groups_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    allGroupTitles.forEach { group ->
+                        val isVisible = group !in hiddenGroupTitles
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = isVisible,
+                                onCheckedChange = { checked -> onToggleGroupHidden(group, !checked) },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                ),
+                            )
+                            M3Text(
+                                text = group.ifBlank { allChannelsLabel },
+                                color = Color.White,
+                            )
+                        }
+                    }
+                }
             }
 
             Button(onClick = onBack) {

@@ -38,6 +38,7 @@ private fun decodeText(bytes: ByteArray): String {
 private val Context.playlistDataStore by preferencesDataStore(name = "beezlist_playlist")
 private val LAST_PLAYLIST_URL = stringPreferencesKey("last_playlist_url")
 private val FAVORITE_CHANNEL_URLS = stringSetPreferencesKey("favorite_channel_urls")
+private val HIDDEN_GROUP_TITLES = stringSetPreferencesKey("hidden_group_titles")
 private val EPG_URL = stringPreferencesKey("epg_url")
 private val RECENTLY_WATCHED = stringPreferencesKey("recently_watched")
 private const val RECENTLY_WATCHED_LIMIT = 10
@@ -68,6 +69,16 @@ class PlaylistRepository(private val context: Context) {
             } else {
                 current + streamUrl
             }
+        }
+    }
+
+    val hiddenGroupTitles: Flow<Set<String>> =
+        context.playlistDataStore.data.map { it[HIDDEN_GROUP_TITLES].orEmpty() }
+
+    suspend fun setGroupHidden(groupTitle: String, hidden: Boolean) {
+        context.playlistDataStore.edit { prefs ->
+            val current = prefs[HIDDEN_GROUP_TITLES].orEmpty()
+            prefs[HIDDEN_GROUP_TITLES] = if (hidden) current + groupTitle else current - groupTitle
         }
     }
 

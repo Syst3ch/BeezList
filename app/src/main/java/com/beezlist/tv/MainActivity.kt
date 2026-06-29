@@ -71,6 +71,10 @@ private fun BeezListApp(viewModel: MainViewModel) {
     val epgState by viewModel.epgState.collectAsState()
     val epgPrograms by viewModel.epgPrograms.collectAsState()
     val recentlyWatched by viewModel.recentlyWatched.collectAsState()
+    val hiddenGroupTitles by viewModel.hiddenGroupTitles.collectAsState()
+
+    fun visibleChannels(channels: List<Channel>): List<Channel> =
+        channels.filter { it.groupTitle !in hiddenGroupTitles }
 
     NavHost(navController = navController, startDestination = Routes.INPUT) {
         composable(Routes.INPUT) {
@@ -99,7 +103,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
         }
         composable(Routes.CHANNELS) {
             val state = playlistState
-            val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
+            val channels: List<Channel> = visibleChannels((state as? PlaylistState.Loaded)?.channels.orEmpty())
             ChannelListScreen(
                 channels = channels,
                 favorites = favorites,
@@ -113,7 +117,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
         }
         composable(Routes.EPG) {
             val state = playlistState
-            val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
+            val channels: List<Channel> = visibleChannels((state as? PlaylistState.Loaded)?.channels.orEmpty())
             EpgScreen(
                 channels = channels,
                 epgPrograms = epgPrograms,
@@ -122,13 +126,22 @@ private fun BeezListApp(viewModel: MainViewModel) {
             )
         }
         composable(Routes.SETTINGS) {
+            val state = playlistState
+            val allGroupTitles: List<String> = (state as? PlaylistState.Loaded)?.channels
+                .orEmpty()
+                .map { it.groupTitle }
+                .distinct()
+                .sorted()
             SettingsScreen(
                 currentUrl = lastUrl,
                 playlistState = playlistState,
                 epgUrl = epgUrl,
                 epgState = epgState,
+                allGroupTitles = allGroupTitles,
+                hiddenGroupTitles = hiddenGroupTitles,
                 onLoadPlaylist = { url -> viewModel.loadPlaylist(url) },
                 onLoadEpg = { url -> viewModel.loadEpg(url) },
+                onToggleGroupHidden = { group, hidden -> viewModel.setGroupHidden(group, hidden) },
                 onScanQr = { navController.navigate(Routes.QR_PAIRING) },
                 onBack = { navController.popBackStack() },
             )
@@ -150,7 +163,7 @@ private fun BeezListApp(viewModel: MainViewModel) {
         ) { backStackEntry ->
             val encodedUrl = backStackEntry.arguments?.getString("streamUrl").orEmpty()
             val state = playlistState
-            val channels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
+            val channels: List<Channel> = visibleChannels((state as? PlaylistState.Loaded)?.channels.orEmpty())
             PlayerScreen(
                 channels = channels,
                 initialStreamUrl = Uri.decode(encodedUrl),

@@ -54,6 +54,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _recentlyWatched = MutableStateFlow<List<String>>(emptyList())
     val recentlyWatched: StateFlow<List<String>> = _recentlyWatched
 
+    private val _hiddenGroupTitles = MutableStateFlow<Set<String>>(emptySet())
+    val hiddenGroupTitles: StateFlow<Set<String>> = _hiddenGroupTitles
+
     init {
         viewModelScope.launch {
             repository.lastPlaylistUrl.collect { url ->
@@ -79,6 +82,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.recentlyWatchedUrls.collect { urls ->
                 _recentlyWatched.update { urls }
+            }
+        }
+        viewModelScope.launch {
+            repository.hiddenGroupTitles.collect { groups ->
+                _hiddenGroupTitles.update { groups }
             }
         }
     }
@@ -128,6 +136,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.saveEpgUrl(trimmed)
             fetchAndApplyEpg(trimmed)
+        }
+    }
+
+    fun setGroupHidden(groupTitle: String, hidden: Boolean) {
+        viewModelScope.launch {
+            repository.setGroupHidden(groupTitle, hidden)
         }
     }
 
