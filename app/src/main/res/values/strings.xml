@@ -65,4 +65,6 @@
     <string name="player_aspect_fill">מילוי</string>
     <string name="player_aspect_zoom">זום</string>
     <string name="player_track_auto">אוטומטי</string>
+    <string name="scan_epg_qr_button">הזן EPG מהטלפון (QR)</string>
+    <string name="qr_pairing_epg_subtitle">סרקו את הקוד במצלמת הטלפון, הזינו את כתובת מדריך השידורים (XMLTV URL) בדף שנפתח ושלחו. ודאו שהטלפון מחובר לאותה רשת Wi-Fi כמו הטלוויזיה.</string>
 </resources>

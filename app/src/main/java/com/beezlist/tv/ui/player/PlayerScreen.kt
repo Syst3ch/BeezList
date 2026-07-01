@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -60,6 +59,7 @@ import coil.compose.AsyncImage
 import com.beezlist.tv.R
 import com.beezlist.tv.data.Channel
 import com.beezlist.tv.data.EpgProgram
+import com.beezlist.tv.ui.common.TvButton
 import kotlinx.coroutines.delay
 
 private val TopGradient = Brush.verticalGradient(listOf(Color(0xCC000000), Color.Transparent))
@@ -213,7 +213,7 @@ fun PlayerScreen(
                     text = stringResource(R.string.player_error),
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Button(onClick = { retryKey++; hasError = false; isBuffering = true }) {
+                TvButton(onClick = { retryKey++; hasError = false; isBuffering = true }) {
                     M3Text(stringResource(R.string.player_retry))
                 }
             }
@@ -296,7 +296,7 @@ fun PlayerScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         // Audio track picker
-                        Button(
+                        TvButton(
                             onClick = { controlsResetKey++; showAudioPicker = true },
                             enabled = audioGroups.isNotEmpty(),
                         ) {
@@ -307,7 +307,7 @@ fun PlayerScreen(
                         }
 
                         // Subtitle picker
-                        Button(
+                        TvButton(
                             onClick = { controlsResetKey++; showSubtitlePicker = true },
                             enabled = subtitleGroups.isNotEmpty(),
                         ) {
@@ -318,7 +318,7 @@ fun PlayerScreen(
                         }
 
                         // Aspect ratio cycle
-                        Button(onClick = {
+                        TvButton(onClick = {
                             controlsResetKey++
                             val modes = AspectMode.values()
                             aspectMode = modes[(modes.indexOf(aspectMode) + 1) % modes.size]
@@ -329,7 +329,7 @@ fun PlayerScreen(
                         Spacer(modifier = Modifier.weight(1f))
 
                         // Favorite toggle
-                        Button(
+                        TvButton(
                             onClick = { currentChannel?.let(onToggleFavorite); controlsResetKey++ },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isFavorite) MaterialTheme.colorScheme.primary
@@ -382,7 +382,7 @@ private fun TrackPickerDialog(
         title = { M3Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                TvButton(
                     onClick = {
                         player.trackSelectionParameters = player.trackSelectionParameters
                             .buildUpon()
@@ -399,7 +399,7 @@ private fun TrackPickerDialog(
                     val label = format.language?.uppercase()
                         ?: format.label
                         ?: "$title ${index + 1}"
-                    Button(
+                    TvButton(
                         onClick = {
                             player.trackSelectionParameters = player.trackSelectionParameters
                                 .buildUpon()
@@ -416,7 +416,7 @@ private fun TrackPickerDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) { M3Text(stringResource(R.string.parental_pin_cancel)) }
+            TvButton(onClick = onDismiss) { M3Text(stringResource(R.string.parental_pin_cancel)) }
         },
     )
 }

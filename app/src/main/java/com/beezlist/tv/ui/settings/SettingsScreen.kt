@@ -28,9 +28,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.tv.material3.MaterialTheme
+import com.beezlist.tv.ui.common.TvButton
 import androidx.tv.material3.Text
 import com.beezlist.tv.EpgState
 import com.beezlist.tv.PlaylistState
@@ -62,6 +62,7 @@ fun SettingsScreen(
     onExportSettings: ((String) -> Unit) -> Unit,
     onImportSettings: (String) -> Unit,
     onScanQr: () -> Unit,
+    onScanEpgQr: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -106,7 +107,7 @@ fun SettingsScreen(
                         color = Color.White,
                         modifier = Modifier.weight(1f, fill = false).widthIn(max = 420.dp),
                     )
-                    Button(onClick = { onRemovePlaylist(url) }) {
+                    TvButton(onClick = { onRemovePlaylist(url) }) {
                         M3Text(stringResource(R.string.remove_playlist_button))
                     }
                 }
@@ -120,14 +121,14 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
 
-            Button(onClick = {
+            TvTvButton(onClick = {
                 onAddPlaylist(newPlaylistUrl)
                 newPlaylistUrl = ""
             }) {
                 M3Text(stringResource(R.string.add_playlist_button))
             }
 
-            Button(onClick = onScanQr) {
+            TvTvButton(onClick = onScanQr) {
                 M3Text(stringResource(R.string.scan_qr_button))
             }
 
@@ -155,7 +156,7 @@ fun SettingsScreen(
             profiles.forEach { profile ->
                 val isActive = profile == activeProfile
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Button(
+                    TvButton(
                         onClick = { onSelectProfile(profile) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isActive) {
@@ -167,7 +168,7 @@ fun SettingsScreen(
                     ) {
                         M3Text(profile)
                     }
-                    Button(onClick = { onRemoveProfile(profile) }) {
+                    TvButton(onClick = { onRemoveProfile(profile) }) {
                         M3Text(stringResource(R.string.remove_profile_button))
                     }
                 }
@@ -180,7 +181,7 @@ fun SettingsScreen(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
-            Button(onClick = {
+            TvButton(onClick = {
                 onAddProfile(newProfileName)
                 newProfileName = ""
             }) {
@@ -196,8 +197,12 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
 
-            Button(onClick = { onLoadEpg(epgUrlInput) }) {
+            TvTvButton(onClick = { onLoadEpg(epgUrlInput) }) {
                 M3Text(stringResource(R.string.load_epg))
+            }
+
+            TvTvButton(onClick = onScanEpgQr) {
+                M3Text(stringResource(R.string.scan_epg_qr_button))
             }
 
             when (epgState) {
@@ -269,7 +274,7 @@ fun SettingsScreen(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
-            Button(onClick = { onSetParentalPin(pinInput) }) {
+            TvButton(onClick = { onSetParentalPin(pinInput) }) {
                 M3Text(stringResource(R.string.save_pin_button))
             }
 
@@ -278,7 +283,7 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Button(onClick = {
+            TvButton(onClick = {
                 onExportSettings { json ->
                     val sendIntent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
@@ -296,14 +301,14 @@ fun SettingsScreen(
                 colors = fieldColors,
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
-            Button(onClick = {
+            TvButton(onClick = {
                 onImportSettings(importInput)
                 importInput = ""
             }) {
                 M3Text(stringResource(R.string.import_settings_button))
             }
 
-            Button(onClick = onBack) {
+            TvButton(onClick = onBack) {
                 M3Text(stringResource(R.string.settings_back))
             }
         }

@@ -39,6 +39,7 @@ private val ErrorRed = Color(0xFFFF6B6B)
 
 @Composable
 fun QrPairingScreen(
+    forEpg: Boolean = false,
     onUrlReceived: (String) -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -91,7 +92,9 @@ fun QrPairingScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = stringResource(R.string.qr_pairing_subtitle),
+                text = stringResource(
+                    if (forEpg) R.string.qr_pairing_epg_subtitle else R.string.qr_pairing_subtitle
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground,
             )

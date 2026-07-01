@@ -14,11 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -46,6 +43,7 @@ import coil.compose.AsyncImage
 import com.beezlist.tv.R
 import com.beezlist.tv.data.Channel
 import com.beezlist.tv.data.EpgProgram
+import com.beezlist.tv.ui.common.TvButton
 
 private const val ALL_TAB = "__all__"
 private const val FAVORITES_TAB = "__favorites__"
@@ -124,30 +122,32 @@ fun ChannelListScreen(
             base
         }
     }
-    val favoriteChannels = filteredChannels.filter { it.streamUrl in favorites }
-    val groups = filteredChannels.groupBy { it.groupTitle }.toSortedMap()
-
-    val recentChannels = if (query.isBlank()) {
-        recentlyWatched.mapNotNull { url -> channels.find { it.streamUrl == url } }
-    } else {
-        emptyList()
+    val favoriteChannels = remember(filteredChannels, favorites) {
+        filteredChannels.filter { it.streamUrl in favorites }
     }
-    val newChannels = if (query.isBlank()) {
-        channels.filter { it.streamUrl in newChannelUrls }
-    } else {
-        emptyList()
+    val groups = remember(filteredChannels) {
+        filteredChannels.groupBy { it.groupTitle }.toSortedMap()
     }
-    val popularChannels = if (query.isBlank()) {
-        channels.filter { (watchTimeTotals[it.streamUrl] ?: 0L) > 0L }
+    val recentChannels = remember(recentlyWatched, channels, liveNowOnly, epgPrograms, query) {
+        if (query.isNotBlank()) return@remember emptyList()
+        val list = recentlyWatched.mapNotNull { url -> channels.find { it.streamUrl == url } }
+        if (liveNowOnly) list.filter { currentProgramTitle(it.tvgId, epgPrograms) != null } else list
+    }
+    val newChannels = remember(channels, newChannelUrls, liveNowOnly, epgPrograms, query) {
+        if (query.isNotBlank()) return@remember emptyList()
+        val list = channels.filter { it.streamUrl in newChannelUrls }
+        if (liveNowOnly) list.filter { currentProgramTitle(it.tvgId, epgPrograms) != null } else list
+    }
+    val popularChannels = remember(channels, watchTimeTotals, liveNowOnly, epgPrograms, query) {
+        if (query.isNotBlank()) return@remember emptyList()
+        val list = channels.filter { (watchTimeTotals[it.streamUrl] ?: 0L) > 0L }
             .sortedByDescending { watchTimeTotals[it.streamUrl] ?: 0L }
             .take(POPULAR_CHANNELS_LIMIT)
-    } else {
-        emptyList()
+        if (liveNowOnly) list.filter { currentProgramTitle(it.tvgId, epgPrograms) != null } else list
     }
-    val heroChannel = if (query.isBlank()) {
+    val heroChannel = remember(recentChannels, favoriteChannels, channels, query) {
+        if (query.isNotBlank()) return@remember null
         recentChannels.firstOrNull() ?: favoriteChannels.firstOrNull() ?: channels.firstOrNull()
-    } else {
-        null
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -170,18 +170,21 @@ fun ChannelListScreen(
                 ),
                 modifier = Modifier.weight(1f),
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = liveNowOnly,
-                    onCheckedChange = { liveNowOnly = it },
-                    colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary),
-                )
-                M3Text(stringResource(R.string.live_now_only_label), color = Color.White)
+            TvButton(
+                onClick = { liveNowOnly = !liveNowOnly },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (liveNowOnly) MaterialTheme.colorScheme.primary
+                                     else MaterialTheme.colorScheme.surface,
+                    contentColor = if (liveNowOnly) MaterialTheme.colorScheme.onPrimary
+                                   else MaterialTheme.colorScheme.onSurface,
+                ),
+            ) {
+                M3Text(stringResource(R.string.live_now_only_label))
             }
-            Button(onClick = onOpenEpg) {
+            TvButton(onClick = onOpenEpg) {
                 M3Text(stringResource(R.string.epg_button))
             }
-            Button(onClick = onOpenSettings) {
+            TvButton(onClick = onOpenSettings) {
                 M3Text(stringResource(R.string.settings_button))
             }
         }
@@ -390,12 +393,12 @@ private fun PinDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(pin) }) {
+            TvButton(onClick = { onConfirm(pin) }) {
                 M3Text(stringResource(R.string.parental_pin_confirm))
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
+            TvButton(onClick = onDismiss) {
                 M3Text(stringResource(R.string.parental_pin_cancel))
             }
         },
@@ -432,7 +435,7 @@ private fun CategoryTabs(
     ) {
         items(tabs) { (key, label) ->
             val isSelected = key == selected
-            Button(
+            TvButton(
                 onClick = { onSelect(key) },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isSelected) {
@@ -557,7 +560,7 @@ private fun HeroBanner(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Button(onClick = onPlay) {
+                TvButton(onClick = onPlay) {
                     M3Text(stringResource(R.string.play_now))
                 }
             }

@@ -37,6 +37,7 @@ import com.beezlist.tv.ui.theme.BeezListTheme
 private object Routes {
     const val INPUT = "input"
     const val QR_PAIRING = "qr_pairing"
+    const val EPG_QR_PAIRING = "epg_qr_pairing"
     const val CHANNELS = "channels"
     const val SETTINGS = "settings"
     const val EPG = "epg"
@@ -138,6 +139,16 @@ private fun BeezListApp(viewModel: MainViewModel, onPlayerActiveChanged: (Boolea
                 onCancel = { navController.popBackStack() },
             )
         }
+        composable(Routes.EPG_QR_PAIRING) {
+            QrPairingScreen(
+                forEpg = true,
+                onUrlReceived = { url ->
+                    viewModel.loadEpg(url)
+                    navController.popBackStack()
+                },
+                onCancel = { navController.popBackStack() },
+            )
+        }
         composable(Routes.CHANNELS) {
             val state = playlistState
             val allChannels: List<Channel> = (state as? PlaylistState.Loaded)?.channels.orEmpty()
@@ -200,6 +211,7 @@ private fun BeezListApp(viewModel: MainViewModel, onPlayerActiveChanged: (Boolea
                 onExportSettings = { onResult -> viewModel.exportSettings(onResult) },
                 onImportSettings = { json -> viewModel.importSettings(json) },
                 onScanQr = { navController.navigate(Routes.QR_PAIRING) },
+                onScanEpgQr = { navController.navigate(Routes.EPG_QR_PAIRING) },
                 onBack = { navController.popBackStack() },
             )
         }
