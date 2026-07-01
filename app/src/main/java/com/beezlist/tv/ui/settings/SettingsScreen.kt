@@ -121,14 +121,14 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
 
-            TvTvButton(onClick = {
+            TvButton(onClick = {
                 onAddPlaylist(newPlaylistUrl)
                 newPlaylistUrl = ""
             }) {
                 M3Text(stringResource(R.string.add_playlist_button))
             }
 
-            TvTvButton(onClick = onScanQr) {
+            TvButton(onClick = onScanQr) {
                 M3Text(stringResource(R.string.scan_qr_button))
             }
 
@@ -197,11 +197,11 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(0.85f).widthIn(max = 560.dp),
             )
 
-            TvTvButton(onClick = { onLoadEpg(epgUrlInput) }) {
+            TvButton(onClick = { onLoadEpg(epgUrlInput) }) {
                 M3Text(stringResource(R.string.load_epg))
             }
 
-            TvTvButton(onClick = onScanEpgQr) {
+            TvButton(onClick = onScanEpgQr) {
                 M3Text(stringResource(R.string.scan_epg_qr_button))
             }
 
