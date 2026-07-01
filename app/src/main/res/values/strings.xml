@@ -58,4 +58,11 @@
     <string name="new_channel_badge">חדש</string>
     <string name="locked_group_placeholder">קטגוריה נעולה. הקש כדי להזין קוד PIN.</string>
     <string name="epg_reminder_channel_name">תזכורות מדריך שידורים</string>
+    <string name="player_retry">נסה שוב</string>
+    <string name="player_audio_track">טראק שמע</string>
+    <string name="player_subtitles">כתוביות</string>
+    <string name="player_aspect_fit">מותאם</string>
+    <string name="player_aspect_fill">מילוי</string>
+    <string name="player_aspect_zoom">זום</string>
+    <string name="player_track_auto">אוטומטי</string>
 </resources>

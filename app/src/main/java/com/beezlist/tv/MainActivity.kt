@@ -219,8 +219,11 @@ private fun BeezListApp(viewModel: MainViewModel, onPlayerActiveChanged: (Boolea
             PlayerScreen(
                 channels = channels,
                 initialStreamUrl = Uri.decode(encodedUrl),
+                epgPrograms = epgPrograms,
+                favorites = favorites,
                 onWatching = { channel -> viewModel.recordWatched(channel.streamUrl) },
                 onWatchTime = { channel, deltaMillis -> viewModel.addWatchTime(channel.streamUrl, deltaMillis) },
+                onToggleFavorite = { channel -> viewModel.toggleFavorite(channel.streamUrl) },
             )
         }
     }
